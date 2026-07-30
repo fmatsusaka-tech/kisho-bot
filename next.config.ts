@@ -1,15 +1,13 @@
 import type { NextConfig } from "next";
 
 const isGitHubPages = process.env.GITHUB_ACTIONS === "true";
-const repositoryName = "teiki-chosa-system";
+const repositoryName = "kisho-bot";
 
 const nextConfig: NextConfig = {
   reactStrictMode: true,
-  // OCR and persistence credentials must stay behind server-side route handlers.
+  output: "export",
   trailingSlash: true,
-  images: {
-    unoptimized: true,
-  },
+  images: { unoptimized: true },
   basePath: isGitHubPages ? `/${repositoryName}` : "",
   assetPrefix: isGitHubPages ? `/${repositoryName}/` : "",
 };
