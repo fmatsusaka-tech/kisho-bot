@@ -1,0 +1,19 @@
+node_modules/
+.next/
+out/
+coverage/
+.env
+.env.local
+.env.*.local
+.DS_Store
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+tsconfig.tsbuildinfo
+.prediction-cli/
+
+# Python
+__pycache__/
+*.py[cod]
