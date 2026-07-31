@@ -6,28 +6,63 @@ import {
   WEATHER_SPREADSHEET_URL, type WeatherRecord,
 } from "@/features/weather/weather-data";
 import {
-  filterWeatherPeriod, summarizeWeather,
+  buildAccumulatedTemperatureSeries, filterWeatherPeriod, summarizeWeather,
   type BaseTemperature, type WeatherMetric, type WeatherView,
 } from "@/features/weather/weather-period";
 
 const show = (value: number | null) => value === null ? "—" : value.toFixed(1);
+const dateLabel = (date: string) => {
+  const [, month, day] = date.split("-");
+  return `${Number(month)}/${Number(day)}`;
+};
 
-function WeatherChart({ rows, field, color, label }: {
+function AxisChart({ rows, metric, baseTemperature, label }: {
   rows: WeatherRecord[];
-  field: "meanTemp" | "yuasaRain";
-  color: string;
+  metric: WeatherMetric;
+  baseTemperature: BaseTemperature;
   label: string;
 }) {
-  const values = rows.map((row) => row[field]);
+  const values = metric === "rainfall"
+    ? rows.map((row) => row.yuasaRain)
+    : metric === "temperature"
+      ? rows.map((row) => row.meanTemp)
+      : buildAccumulatedTemperatureSeries(rows, baseTemperature);
   const valid = values.filter((value): value is number => value !== null);
   if (valid.length < 2) return <p className="empty">表示できるデータがありません。</p>;
-  const min = Math.min(0, ...valid), max = Math.max(...valid), span = Math.max(1, max - min);
-  const points = values.flatMap((value, index) => value === null ? [] : [
-    `${index / Math.max(1, values.length - 1) * 100},${38 - (value - min) / span * 34}`,
-  ]).join(" ");
-  return <svg className="sparkline" viewBox="0 0 100 42" role="img" aria-label={label}>
-    <line x1="0" y1="38" x2="100" y2="38" />
-    <polyline points={points} fill="none" stroke={color} strokeWidth="2.2" vectorEffect="non-scaling-stroke" />
+
+  const width = 720, height = 290, left = 64, right = 18, top = 24, bottom = 48;
+  const plotWidth = width - left - right, plotHeight = height - top - bottom;
+  const dataMin = metric === "temperature" ? Math.min(...valid) : 0;
+  const dataMax = Math.max(...valid);
+  const padding = Math.max((dataMax - dataMin) * .08, 1);
+  const min = metric === "temperature" ? Math.floor(dataMin - padding) : 0;
+  const max = Math.ceil(dataMax + padding);
+  const span = Math.max(max - min, 1);
+  const x = (index: number) => left + index / Math.max(values.length - 1, 1) * plotWidth;
+  const y = (value: number) => top + (max - value) / span * plotHeight;
+  const points = values.flatMap((value, index) =>
+    value === null ? [] : [`${x(index)},${y(value)}`],
+  ).join(" ");
+  const yTicks = Array.from({ length: 5 }, (_, index) => max - span * index / 4);
+  const xIndexes = [...new Set(Array.from({ length: 5 }, (_, index) =>
+    Math.round((values.length - 1) * index / 4),
+  ))];
+  const unit = metric === "rainfall" ? "mm" : metric === "temperature" ? "℃" : "℃・日";
+  const color = metric === "rainfall" ? "var(--aqua)" : "var(--navy)";
+
+  return <svg className="axis-chart" viewBox={`0 0 ${width} ${height}`} role="img" aria-label={label}>
+    <text x={left} y="13" className="axis-unit">{unit}</text>
+    {yTicks.map((tick) => <g key={tick}>
+      <line x1={left} y1={y(tick)} x2={width - right} y2={y(tick)} className="grid-line" />
+      <text x={left - 9} y={y(tick) + 4} textAnchor="end" className="tick-label">{tick.toFixed(metric === "temperature" ? 1 : 0)}</text>
+    </g>)}
+    {xIndexes.map((index) => <g key={index}>
+      <line x1={x(index)} y1={top} x2={x(index)} y2={height - bottom} className="grid-line vertical" />
+      <text x={x(index)} y={height - 17} textAnchor="middle" className="tick-label">{dateLabel(rows[index].date)}</text>
+    </g>)}
+    <line x1={left} y1={height - bottom} x2={width - right} y2={height - bottom} className="axis-line" />
+    <line x1={left} y1={top} x2={left} y2={height - bottom} className="axis-line" />
+    <polyline points={points} fill="none" stroke={color} strokeWidth="3" vectorEffect="non-scaling-stroke" />
   </svg>;
 }
 
@@ -35,8 +70,8 @@ export default function KishoDashboard() {
   const [rows, setRows] = useState<WeatherRecord[]>([]);
   const [status, setStatus] = useState<"loading" | "ready" | "error">("loading");
   const [error, setError] = useState("");
-  const [view, setView] = useState<WeatherView>("year");
-  const [metric, setMetric] = useState<WeatherMetric>("all");
+  const [view, setView] = useState<WeatherView>("30days");
+  const [metric, setMetric] = useState<WeatherMetric>("rainfall");
   const [baseTemperature, setBaseTemperature] = useState<BaseTemperature>(5);
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
@@ -49,11 +84,11 @@ export default function KishoDashboard() {
       const data = parseWeatherCsv(await response.text());
       if (!data.length) throw new Error("有効な観測データがありません。");
       setRows(data);
-      const latest = data.at(-1)?.date ?? "";
-      const thirtyDaysAgo = new Date(`${latest}T00:00:00`);
-      thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 29);
-      setStartDate(thirtyDaysAgo.toISOString().slice(0, 10));
-      setEndDate(latest);
+      const latestDate = data.at(-1)?.date ?? "";
+      const initialStart = new Date(`${latestDate}T00:00:00`);
+      initialStart.setDate(initialStart.getDate() - 29);
+      setStartDate(initialStart.toISOString().slice(0, 10));
+      setEndDate(latestDate);
       setStatus("ready");
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : "不明なエラー");
@@ -71,18 +106,23 @@ export default function KishoDashboard() {
     () => summarizeWeather(selected, baseTemperature),
     [selected, baseTemperature],
   );
+  const accumulatedSeries = useMemo(
+    () => buildAccumulatedTemperatureSeries(selected, baseTemperature),
+    [selected, baseTemperature],
+  );
   const issues = useMemo(() => validateWeather(rows), [rows]);
   const invalidPeriod = view === "custom" && Boolean(startDate && endDate && startDate > endDate);
-  const showTemperature = metric !== "rainfall";
-  const showRainfall = metric !== "temperature";
-  const periodLabel = view === "year"
-    ? `${latest?.date.slice(0, 4) ?? ""}年`
-    : `${startDate.replaceAll("-", "/")}〜${endDate.replaceAll("-", "/")}`;
+  const periodLabel = view === "30days"
+    ? "直近30日"
+    : view === "year"
+      ? `${latest?.date.slice(0, 4) ?? ""}年`
+      : `${startDate.replaceAll("-", "/")}〜${endDate.replaceAll("-", "/")}`;
+  const metricLabel = metric === "rainfall" ? "降水量" : metric === "temperature" ? "気温" : "積算温度";
 
   return <main className="kisho-shell">
     <header className="kisho-header">
       <div><p className="eyebrow">KISHO BOT · WAKAYAMA</p><h1>気象データBot</h1>
-        <p>湯浅の雨と、川辺の気温。期間と表示情報を選んで確認できます。</p></div>
+        <p>期間と表示情報を選び、湯浅の雨と川辺の気温を確認できます。</p></div>
       <span className={`state ${status}`}>{status === "loading" ? "読込中" : status === "ready" ? "更新済み" : "取得失敗"}</span>
     </header>
 
@@ -98,8 +138,9 @@ export default function KishoDashboard() {
 
       <section className="controls panel">
         <div className="control-group"><span>期間</span><div className="segmented">
-          <button className={view === "year" ? "active" : ""} onClick={() => setView("year")}>今年の気象データ</button>
-          <button className={view === "custom" ? "active" : ""} onClick={() => setView("custom")}>指定期間の気象データ</button>
+          <button className={view === "30days" ? "active" : ""} onClick={() => setView("30days")}>30日</button>
+          <button className={view === "custom" ? "active" : ""} onClick={() => setView("custom")}>指定期間</button>
+          <button className={view === "year" ? "active" : ""} onClick={() => setView("year")}>今年</button>
         </div></div>
         {view === "custom" && <div className="date-fields">
           <label>開始日<input type="date" min={rows[0]?.date} max={endDate || latest.date} value={startDate} onChange={(event) => setStartDate(event.target.value)} /></label>
@@ -107,40 +148,43 @@ export default function KishoDashboard() {
           <label>終了日<input type="date" min={startDate || rows[0]?.date} max={latest.date} value={endDate} onChange={(event) => setEndDate(event.target.value)} /></label>
         </div>}
         <div className="control-group"><span>表示情報</span><div className="segmented compact">
-          <button className={metric === "all" ? "active" : ""} onClick={() => setMetric("all")}>気温と降水量</button>
-          <button className={metric === "temperature" ? "active" : ""} onClick={() => setMetric("temperature")}>気温</button>
           <button className={metric === "rainfall" ? "active" : ""} onClick={() => setMetric("rainfall")}>降水量</button>
+          <button className={metric === "temperature" ? "active" : ""} onClick={() => setMetric("temperature")}>気温</button>
+          <button className={metric === "accumulated" ? "active" : ""} onClick={() => setMetric("accumulated")}>積算温度</button>
         </div></div>
-        {showTemperature && <div className="control-group"><span>積算温度の基準温度</span><div className="segmented compact">
+        {metric === "accumulated" && <div className="control-group"><span>積算温度の基準温度</span><div className="segmented compact">
           {([3, 5, 8] as const).map((temperature) => <button key={temperature} className={baseTemperature === temperature ? "active" : ""} onClick={() => setBaseTemperature(temperature)}>{temperature}℃</button>)}
-        </div><p className="formula-note">日平均気温から基準温度を引き、0を下回る日は加算しません。</p></div>}
+        </div><p className="formula-note">Σ max（日平均気温 − 基準温度, 0）</p></div>}
         {invalidPeriod && <p className="period-error">開始日は終了日以前にしてください。</p>}
       </section>
 
       {!invalidPeriod && selected.length > 0 ? <>
-        <section className={`cards ${metric !== "all" ? "single" : ""}`}>
-          {showTemperature && <article className="card warm"><p>川辺 · {periodLabel}</p><h2>期間平均気温</h2><strong>{show(summary.meanTemperature)}<small>℃</small></strong>
-            <dl><div><dt>有効積算温度（基準{baseTemperature}℃）</dt><dd>{show(summary.accumulatedTemperature)} ℃・日</dd></div><div><dt>期間最高気温</dt><dd>{show(summary.maximumTemperature)} ℃</dd></div><div><dt>期間最低気温</dt><dd>{show(summary.minimumTemperature)} ℃</dd></div>{summary.temperatureMissingDays > 0 && <div><dt>気温欠測日</dt><dd>{summary.temperatureMissingDays} 日</dd></div>}</dl></article>}
-          {showRainfall && <article className="card rain"><p>湯浅 · {periodLabel}</p><h2>期間降水量</h2><strong>{show(summary.rainTotal)}<small>mm</small></strong>
+        <section className="cards single">
+          {metric === "rainfall" && <article className="card rain"><p>湯浅 · {periodLabel}</p><h2>期間降水量</h2><strong>{show(summary.rainTotal)}<small>mm</small></strong>
             <dl><div><dt>降雨日数</dt><dd>{summary.rainDays} 日</dd></div><div><dt>日最大降水量</dt><dd>{show(summary.rainMaximum)} mm</dd></div></dl></article>}
+          {metric === "temperature" && <article className="card warm"><p>川辺 · {periodLabel}</p><h2>期間平均気温</h2><strong>{show(summary.meanTemperature)}<small>℃</small></strong>
+            <dl><div><dt>期間最高気温</dt><dd>{show(summary.maximumTemperature)} ℃</dd></div><div><dt>期間最低気温</dt><dd>{show(summary.minimumTemperature)} ℃</dd></div></dl></article>}
+          {metric === "accumulated" && <article className="card warm"><p>川辺 · {periodLabel} · 基準{baseTemperature}℃</p><h2>有効積算温度</h2><strong>{show(summary.accumulatedTemperature)}<small>℃・日</small></strong>
+            <dl><div><dt>気温観測日</dt><dd>{summary.temperatureObservedDays} 日</dd></div><div><dt>気温欠測日</dt><dd>{summary.temperatureMissingDays} 日</dd></div></dl></article>}
         </section>
 
         <section className="panel">
-          <div className="section-title"><div><p className="eyebrow">WEATHER TREND</p><h2>{periodLabel}の推移</h2></div><span>{summary.days.toLocaleString("ja-JP")}日分</span></div>
-          <div className={`charts ${metric !== "all" ? "single" : ""}`}>
-            {showTemperature && <article><h3>川辺 平均気温</h3><b>{show(summary.meanTemperature)} ℃ 平均</b><WeatherChart rows={selected} field="meanTemp" color="var(--navy)" label={`${periodLabel}の川辺平均気温`} /></article>}
-            {showRainfall && <article><h3>湯浅 降水量</h3><b>{show(summary.rainTotal)} mm 合計</b><WeatherChart rows={selected} field="yuasaRain" color="var(--aqua)" label={`${periodLabel}の湯浅降水量`} /></article>}
-          </div>
+          <div className="section-title"><div><p className="eyebrow">WEATHER TREND</p><h2>{periodLabel}の{metricLabel}</h2></div><span>{summary.days.toLocaleString("ja-JP")}日分</span></div>
+          <div className="charts single"><article>
+            <AxisChart rows={selected} metric={metric} baseTemperature={baseTemperature} label={`${periodLabel}の${metricLabel}`} />
+          </article></div>
         </section>
 
         <section className="panel">
           <div className="section-title"><div><p className="eyebrow">OBSERVATIONS</p><h2>観測データ</h2></div><span>{selected.length.toLocaleString("ja-JP")}日分</span></div>
           <div className="table-wrap"><table><thead><tr><th>日付</th>
-            {showTemperature && <><th>川辺 平均</th><th>最高</th><th>最低</th></>}
-            {showRainfall && <><th>湯浅 雨</th><th>川辺 雨</th></>}
-          </tr></thead><tbody>{selected.slice().reverse().map((row) => <tr key={row.date}><th>{row.date.replaceAll("-", "/")}</th>
-            {showTemperature && <><td>{show(row.meanTemp)} ℃</td><td>{show(row.maxTemp)} ℃</td><td>{show(row.minTemp)} ℃</td></>}
-            {showRainfall && <><td>{show(row.yuasaRain)} mm</td><td>{show(row.kawabeRain)} mm</td></>}
+            {metric === "rainfall" && <><th>湯浅 降水量</th><th>川辺 降水量</th></>}
+            {metric === "temperature" && <><th>川辺 平均</th><th>最高</th><th>最低</th></>}
+            {metric === "accumulated" && <><th>川辺 平均</th><th>積算温度</th></>}
+          </tr></thead><tbody>{selected.map((row, index) => ({ row, accumulated: accumulatedSeries[index] })).reverse().map(({ row, accumulated }) => <tr key={row.date}><th>{row.date.replaceAll("-", "/")}</th>
+            {metric === "rainfall" && <><td>{show(row.yuasaRain)} mm</td><td>{show(row.kawabeRain)} mm</td></>}
+            {metric === "temperature" && <><td>{show(row.meanTemp)} ℃</td><td>{show(row.maxTemp)} ℃</td><td>{show(row.minTemp)} ℃</td></>}
+            {metric === "accumulated" && <><td>{show(row.meanTemp)} ℃</td><td>{show(accumulated)} ℃・日</td></>}
           </tr>)}</tbody></table></div>
         </section>
       </> : !invalidPeriod && <section className="panel empty">選択した期間のデータがありません。</section>}
