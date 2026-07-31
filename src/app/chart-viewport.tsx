@@ -43,6 +43,7 @@ h1{margin:0;font-size:1rem}button{min-height:42px;border:0;border-radius:10px;pa
 .chart-legend span{display:inline-flex;align-items:center;gap:7px}.chart-legend i{width:26px;border-top-width:3px}
 .scroll{overflow:auto;touch-action:pan-x pan-y;-webkit-overflow-scrolling:touch}
 svg{display:block;width:100%;min-width:720px;height:auto}
+.all-weather-axis{min-width:860px}
 .grid-line{stroke:#c6eaf2;stroke-width:1}.grid-line.vertical{stroke-dasharray:3 5}
 .axis-line{stroke:var(--navy);stroke-width:1.25}.tick-label,.axis-unit{fill:#36566d;font-family:inherit;font-size:11px;font-weight:700}
 .axis-unit{font-size:12px;font-weight:900}p{font-size:.75rem;font-weight:700}
