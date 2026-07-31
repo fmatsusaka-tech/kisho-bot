@@ -48,7 +48,6 @@ export default function WeatherYearComparisonChart({
       year,
       rows: allRows.filter((row) => row.date.startsWith(`${year}-`)),
       stroke: colors[index + 1],
-      dash: index === 0 ? "10 6" : "3 6",
     })),
   ];
   const valueSeries = series.map((item) => ({
@@ -78,7 +77,7 @@ export default function WeatherYearComparisonChart({
   ] as const;
 
   const legend = <div className="chart-legend" aria-label="比較年の凡例">
-      {series.map((item) => <span key={item.year}><i style={{ borderColor: item.stroke, borderStyle: item.dash ? "dashed" : "solid" }} />{item.year}年</span>)}
+      {series.map((item) => <span key={item.year}><i style={{ borderColor: item.stroke, borderStyle: "solid" }} />{item.year}年</span>)}
     </div>;
   return <ChartViewport legend={legend}>
     <svg className="axis-chart" viewBox={`0 0 ${width} ${height}`} role="img" aria-label={`今年と比較年の${label}`}>
@@ -98,7 +97,7 @@ export default function WeatherYearComparisonChart({
           const value = item.values[index];
           return value === null ? [] : [`${x(calendarDay(row.date))},${y(value)}`];
         }).join(" ");
-        return <polyline key={item.year} points={points} fill="none" stroke={item.stroke} strokeWidth="3" strokeDasharray={item.dash} vectorEffect="non-scaling-stroke" />;
+        return <polyline key={item.year} points={points} fill="none" stroke={item.stroke} strokeWidth="2" vectorEffect="non-scaling-stroke" />;
       })}
     </svg>
   </ChartViewport>;

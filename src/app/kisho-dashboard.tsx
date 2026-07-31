@@ -78,7 +78,7 @@ function AxisChart({ rows, metric, baseTemperature, temperatureKind, label }: {
     </g>)}
     <line x1={left} y1={height - bottom} x2={width - right} y2={height - bottom} className="axis-line" />
     <line x1={left} y1={top} x2={left} y2={height - bottom} className="axis-line" />
-    <polyline points={points} fill="none" stroke={color} strokeWidth="3" vectorEffect="non-scaling-stroke" />
+    <polyline points={points} fill="none" stroke={color} strokeWidth="2" vectorEffect="non-scaling-stroke" />
   </svg></ChartViewport>;
 }
 
