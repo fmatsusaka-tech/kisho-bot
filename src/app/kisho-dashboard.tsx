@@ -9,6 +9,7 @@ import {
   buildAccumulatedTemperatureSeries, filterWeatherPeriod, summarizeWeather,
   type BaseTemperature, type WeatherMetric, type WeatherView,
 } from "@/features/weather/weather-period";
+import ChartViewport from "./chart-viewport";
 import TemperatureComparisonChart from "./temperature-comparison-chart";
 import {
   temperatureLabel,
@@ -57,7 +58,7 @@ function AxisChart({ rows, metric, baseTemperature, temperatureKind, label }: {
   const unit = metric === "rainfall" ? "mm" : metric === "temperature" ? "℃" : "℃・日";
   const color = metric === "rainfall" ? "var(--aqua)" : "var(--navy)";
 
-  return <svg className="axis-chart" viewBox={`0 0 ${width} ${height}`} role="img" aria-label={label}>
+  return <ChartViewport><svg className="axis-chart" viewBox={`0 0 ${width} ${height}`} role="img" aria-label={label}>
     <text x={left} y="13" className="axis-unit">{unit}</text>
     {yTicks.map((tick) => <g key={tick}>
       <line x1={left} y1={y(tick)} x2={width - right} y2={y(tick)} className="grid-line" />
@@ -70,7 +71,7 @@ function AxisChart({ rows, metric, baseTemperature, temperatureKind, label }: {
     <line x1={left} y1={height - bottom} x2={width - right} y2={height - bottom} className="axis-line" />
     <line x1={left} y1={top} x2={left} y2={height - bottom} className="axis-line" />
     <polyline points={points} fill="none" stroke={color} strokeWidth="3" vectorEffect="non-scaling-stroke" />
-  </svg>;
+  </svg></ChartViewport>;
 }
 
 export default function KishoDashboard() {
