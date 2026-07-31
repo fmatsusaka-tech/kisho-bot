@@ -121,6 +121,17 @@
   scrollbar-width: thin;
   touch-action: pan-x pan-y;
 }
+.chart-axis-sticky {
+  position: sticky;
+  left: 0;
+  z-index: 3;
+  overflow: hidden;
+  background: var(--white);
+  box-shadow: 8px 0 12px -12px color-mix(in srgb, var(--navy) 55%, transparent);
+  pointer-events: none;
+}
+.chart-axis-copy { max-width: none; }
+.chart-axis-copy .axis-chart { width: 100%; max-width: none; }
 .chart-scale {
   min-width: 100%;
   transition: width .2s ease;

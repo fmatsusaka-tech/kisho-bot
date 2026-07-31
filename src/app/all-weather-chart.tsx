@@ -71,7 +71,7 @@ export default function AllWeatherChart({
   const temperatureScale = scaleRange(lines.filter((line) => temperatureItems.has(line.item)).flatMap((line) => line.values), false);
   const rainfallScale = scaleRange(lines.filter((line) => line.item === "rainfall").flatMap((line) => line.values), true);
   const accumulatedScale = scaleRange(lines.filter((line) => line.item === "accumulated").flatMap((line) => line.values), true);
-  const width = 860, height = 330, left = 66, right = 140, top = 28, bottom = 50;
+  const width = 860, height = 330, left = 190, right = 20, top = 28, bottom = 50;
   const plotWidth = width - left - right, plotHeight = height - top - bottom;
   const x = (row: WeatherRecord, index: number, count: number) => left + (compareYears ? calendarDay(row.date) / 364 : index / Math.max(count - 1, 1)) * plotWidth;
   const yFor = (item: AllGraphItem, value: number) => {
@@ -93,14 +93,14 @@ export default function AllWeatherChart({
 
   return <ChartViewport legend={legend}><svg className="axis-chart all-weather-axis" viewBox={`0 0 ${width} ${height}`} role="img" aria-label="気温、降水量、積算温度の複合グラフ">
     {items.some((item) => temperatureItems.has(item)) && <>
-      <text x={left} y="14" className="axis-unit" fill="#7c3aed">気温 ℃</text>
+      <text x="55" y="14" textAnchor="end" className="axis-unit" fill="#7c3aed">気温 ℃</text>
       {ticks(temperatureScale).map((tick) => <g key={`temp-${tick}`}><line x1={left} y1={yFor("mean", tick)} x2={width - right} y2={yFor("mean", tick)} className="grid-line" />
-        <text x={left - 9} y={yFor("mean", tick) + 4} textAnchor="end" className="tick-label">{tick.toFixed(1)}</text></g>)}
+        <text x="55" y={yFor("mean", tick) + 4} textAnchor="end" className="tick-label">{tick.toFixed(1)}</text></g>)}
     </>}
-    {items.includes("rainfall") && <><text x={width - right + 10} y="14" className="axis-unit" fill="#2563eb">降水量 mm</text>
-      {ticks(rainfallScale).map((tick) => <text key={`rain-${tick}`} x={width - right + 10} y={yFor("rainfall", tick) + 4} className="tick-label">{tick.toFixed(0)}</text>)}</>}
-    {items.includes("accumulated") && <><text x={width - 8} y="14" textAnchor="end" className="axis-unit" fill="#16a34a">積算 ℃・日</text>
-      {ticks(accumulatedScale).map((tick) => <text key={`acc-${tick}`} x={width - 8} y={yFor("accumulated", tick) + 4} textAnchor="end" className="tick-label">{tick.toFixed(0)}</text>)}</>}
+    {items.includes("rainfall") && <><text x="115" y="14" textAnchor="end" className="axis-unit" fill="#2563eb">降水量 mm</text>
+      {ticks(rainfallScale).map((tick) => <text key={`rain-${tick}`} x="115" y={yFor("rainfall", tick) + 4} textAnchor="end" className="tick-label">{tick.toFixed(0)}</text>)}</>}
+    {items.includes("accumulated") && <><text x="180" y="14" textAnchor="end" className="axis-unit" fill="#16a34a">積算 ℃・日</text>
+      {ticks(accumulatedScale).map((tick) => <text key={`acc-${tick}`} x="180" y={yFor("accumulated", tick) + 4} textAnchor="end" className="tick-label">{tick.toFixed(0)}</text>)}</>}
     {xTicks.map(([label, position]) => {
       const xPosition = compareYears ? left + position / 364 * plotWidth : left + position / Math.max(currentRows.length - 1, 1) * plotWidth;
       return <g key={`${label}-${position}`}><line x1={xPosition} y1={top} x2={xPosition} y2={height - bottom} className="grid-line vertical" />
