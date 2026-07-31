@@ -1,4 +1,8 @@
 import type { WeatherRecord } from "@/features/weather/weather-data";
+import {
+  buildAccumulatedTemperatureSeries,
+  type BaseTemperature,
+} from "@/features/weather/weather-period";
 import ChartViewport from "./chart-viewport";
 import {
   temperatureLabel,
@@ -26,37 +30,46 @@ export default function WeatherYearComparisonChart({
   comparisonYears,
   metric,
   kind,
+  baseTemperature,
+  colors = ["var(--chart-red)", "var(--chart-blue)", "var(--chart-green)"],
 }: {
   allRows: WeatherRecord[];
   currentRows: WeatherRecord[];
   currentYear: string;
   comparisonYears: string[];
-  metric: "rainfall" | "temperature";
+  metric: "accumulated" | "rainfall" | "temperature";
   kind: TemperatureKind;
+  baseTemperature: BaseTemperature;
+  colors?: readonly [string, string, string];
 }) {
   const series: Series[] = [
-    { year: currentYear, rows: currentRows, stroke: "var(--chart-red)" },
+    { year: currentYear, rows: currentRows, stroke: colors[0] },
     ...comparisonYears.map((year, index) => ({
       year,
       rows: allRows.filter((row) => row.date.startsWith(`${year}-`)),
-      stroke: index === 0 ? "var(--chart-blue)" : "var(--chart-green)",
+      stroke: colors[index + 1],
       dash: index === 0 ? "10 6" : "3 6",
     })),
   ];
-  const valueOf = (row: WeatherRecord) =>
-    metric === "rainfall" ? row.yuasaRain : temperatureValue(row, kind);
-  const valid = series.flatMap((item) =>
-    item.rows.map(valueOf)
+  const valueSeries = series.map((item) => ({
+    ...item,
+    values: metric === "accumulated"
+      ? buildAccumulatedTemperatureSeries(item.rows, baseTemperature)
+      : item.rows.map((row) => metric === "rainfall" ? row.yuasaRain : temperatureValue(row, kind)),
+  }));
+  const valid = valueSeries.flatMap((item) =>
+    item.values
       .filter((value): value is number => value !== null),
   );
   if (valid.length < 2) return <p className="empty">表示できるデータがありません。</p>;
 
   const width = 720, height = 290, left = 64, right = 18, top = 24, bottom = 48;
   const plotWidth = width - left - right, plotHeight = height - top - bottom;
-  const min = metric === "rainfall" ? 0 : Math.floor(Math.min(...valid) - 1);
+  const min = metric === "temperature" ? Math.floor(Math.min(...valid) - 1) : 0;
   const max = Math.ceil(Math.max(...valid) + 1);
   const span = Math.max(max - min, 1);
-  const label = metric === "rainfall" ? "降水量" : temperatureLabel(kind);
+  const label = metric === "rainfall" ? "降水量" : metric === "accumulated" ? "積算温度" : temperatureLabel(kind);
+  const unit = metric === "rainfall" ? "mm" : metric === "accumulated" ? "℃・日" : "℃";
   const x = (day: number) => left + day / 364 * plotWidth;
   const y = (value: number) => top + (max - value) / span * plotHeight;
   const yTicks = Array.from({ length: 5 }, (_, index) => max - span * index / 4);
@@ -69,7 +82,7 @@ export default function WeatherYearComparisonChart({
     </div>;
   return <ChartViewport legend={legend}>
     <svg className="axis-chart" viewBox={`0 0 ${width} ${height}`} role="img" aria-label={`今年と比較年の${label}`}>
-      <text x={left} y="13" className="axis-unit">{metric === "rainfall" ? "mm" : "℃"}</text>
+      <text x={left} y="13" className="axis-unit">{unit}</text>
       {yTicks.map((tick) => <g key={tick}>
         <line x1={left} y1={y(tick)} x2={width - right} y2={y(tick)} className="grid-line" />
         <text x={left - 9} y={y(tick) + 4} textAnchor="end" className="tick-label">{tick.toFixed(metric === "rainfall" ? 0 : 1)}</text>
@@ -80,9 +93,9 @@ export default function WeatherYearComparisonChart({
       </g>)}
       <line x1={left} y1={height - bottom} x2={width - right} y2={height - bottom} className="axis-line" />
       <line x1={left} y1={top} x2={left} y2={height - bottom} className="axis-line" />
-      {series.map((item) => {
-        const points = item.rows.flatMap((row) => {
-          const value = valueOf(row);
+      {valueSeries.map((item) => {
+        const points = item.rows.flatMap((row, index) => {
+          const value = item.values[index];
           return value === null ? [] : [`${x(calendarDay(row.date))},${y(value)}`];
         }).join(" ");
         return <polyline key={item.year} points={points} fill="none" stroke={item.stroke} strokeWidth="3" strokeDasharray={item.dash} vectorEffect="non-scaling-stroke" />;
