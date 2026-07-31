@@ -23,9 +23,16 @@ const dateLabel = (date: string) => {
   return `${Number(month)}/${Number(day)}`;
 };
 
+type AllGraphItem = "maximum" | "mean" | "minimum" | "rainfall" | "accumulated";
+const ALL_GRAPH_OPTIONS: { value: AllGraphItem; label: string }[] = [
+  { value: "maximum", label: "最高気温" }, { value: "mean", label: "平均気温" },
+  { value: "minimum", label: "最低気温" }, { value: "rainfall", label: "降水量" },
+  { value: "accumulated", label: "積算温度" },
+];
+
 function AxisChart({ rows, metric, baseTemperature, temperatureKind, label }: {
   rows: WeatherRecord[];
-  metric: WeatherMetric;
+  metric: Exclude<WeatherMetric, "all">;
   baseTemperature: BaseTemperature;
   temperatureKind: TemperatureKind;
   label: string;
@@ -87,6 +94,7 @@ export default function KishoDashboard() {
   const [baseTemperature, setBaseTemperature] = useState<BaseTemperature>(5);
   const [temperatureKind, setTemperatureKind] = useState<TemperatureKind>("mean");
   const [comparisonYears, setComparisonYears] = useState<string[]>([]);
+  const [allGraphItems, setAllGraphItems] = useState<AllGraphItem[]>(ALL_GRAPH_OPTIONS.map((option) => option.value));
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
 
@@ -125,6 +133,13 @@ export default function KishoDashboard() {
           : selectedYears,
     );
   };
+  const toggleAllGraphItem = (item: AllGraphItem) => {
+    setAllGraphItems((items) =>
+      items.includes(item)
+        ? items.filter((selectedItem) => selectedItem !== item)
+        : [...items, item],
+    );
+  };
   const selected = useMemo(
     () => filterWeatherPeriod(rows, view, startDate, endDate),
     [rows, view, startDate, endDate],
@@ -144,7 +159,7 @@ export default function KishoDashboard() {
     : view === "year"
       ? `${latest?.date.slice(0, 4) ?? ""}年`
       : `${startDate.replaceAll("-", "/")}〜${endDate.replaceAll("-", "/")}`;
-  const metricLabel = metric === "rainfall" ? "降水量" : metric === "temperature" ? temperatureLabel(temperatureKind) : "積算温度";
+  const metricLabel = metric === "all" ? "全気象データ" : metric === "rainfall" ? "降水量" : metric === "temperature" ? temperatureLabel(temperatureKind) : "積算温度";
   const selectedTemperature = temperatureKind === "maximum"
     ? summary.maximumTemperature
     : temperatureKind === "minimum"
@@ -180,6 +195,7 @@ export default function KishoDashboard() {
           <label>終了日<input type="date" min={startDate || rows[0]?.date} max={latest.date} value={endDate} onChange={(event) => setEndDate(event.target.value)} /></label>
         </div>}
         <div className="control-group"><span>表示情報</span><div className="segmented compact">
+          <button className={metric === "all" ? "active" : ""} onClick={() => setMetric("all")}>全部</button>
           <button className={metric === "rainfall" ? "active" : ""} onClick={() => setMetric("rainfall")}>降水量</button>
           <button className={metric === "temperature" ? "active" : ""} onClick={() => setMetric("temperature")}>気温</button>
           <button className={metric === "accumulated" ? "active" : ""} onClick={() => setMetric("accumulated")}>積算温度</button>
@@ -195,38 +211,55 @@ export default function KishoDashboard() {
             {year}年
           </label>)}
         </div></div>}
-        {metric === "accumulated" && <div className="control-group"><span>積算温度の基準温度</span><div className="segmented compact">
+        {(metric === "accumulated" || metric === "all") && <div className="control-group"><span>積算温度の基準温度</span><div className="segmented compact">
           {([3, 5, 8] as const).map((temperature) => <button key={temperature} className={baseTemperature === temperature ? "active" : ""} onClick={() => setBaseTemperature(temperature)}>{temperature}℃</button>)}
         </div><p className="formula-note">Σ max（日平均気温 − 基準温度, 0）</p></div>}
         {invalidPeriod && <p className="period-error">開始日は終了日以前にしてください。</p>}
       </section>
 
       {!invalidPeriod && selected.length > 0 ? <>
-        <section className="cards single">
-          {metric === "rainfall" && <article className="card rain"><p>湯浅 · {periodLabel}</p><h2>期間降水量</h2><strong>{show(summary.rainTotal)}<small>mm</small></strong>
+        <section className={metric === "all" ? "cards" : "cards single"}>
+          {(metric === "rainfall" || metric === "all") && <article className="card rain"><p>湯浅 · {periodLabel}</p><h2>期間降水量</h2><strong>{show(summary.rainTotal)}<small>mm</small></strong>
             <dl><div><dt>降雨日数</dt><dd>{summary.rainDays} 日</dd></div><div><dt>日最大降水量</dt><dd>{show(summary.rainMaximum)} mm</dd></div></dl></article>}
-          {metric === "temperature" && <article className="card warm"><p>川辺 · {periodLabel}</p><h2>期間{temperatureLabel(temperatureKind)}</h2><strong>{show(selectedTemperature)}<small>℃</small></strong>
+          {(metric === "temperature" || metric === "all") && <article className="card warm"><p>川辺 · {periodLabel}</p><h2>期間{metric === "all" ? "平均気温" : temperatureLabel(temperatureKind)}</h2><strong>{show(metric === "all" ? summary.meanTemperature : selectedTemperature)}<small>℃</small></strong>
             <dl><div><dt>期間平均気温</dt><dd>{show(summary.meanTemperature)} ℃</dd></div><div><dt>期間最高 / 最低</dt><dd>{show(summary.maximumTemperature)} / {show(summary.minimumTemperature)} ℃</dd></div></dl></article>}
-          {metric === "accumulated" && <article className="card warm"><p>川辺 · {periodLabel} · 基準{baseTemperature}℃</p><h2>有効積算温度</h2><strong>{show(summary.accumulatedTemperature)}<small>℃・日</small></strong>
+          {(metric === "accumulated" || metric === "all") && <article className="card warm"><p>川辺 · {periodLabel} · 基準{baseTemperature}℃</p><h2>有効積算温度</h2><strong>{show(summary.accumulatedTemperature)}<small>℃・日</small></strong>
             <dl><div><dt>気温観測日</dt><dd>{summary.temperatureObservedDays} 日</dd></div><div><dt>気温欠測日</dt><dd>{summary.temperatureMissingDays} 日</dd></div></dl></article>}
         </section>
 
         <section className="panel">
           <div className="section-title"><div><p className="eyebrow">WEATHER TREND</p><h2>{periodLabel}の{metricLabel}</h2></div><span>{summary.days.toLocaleString("ja-JP")}日分</span></div>
-          <div className="charts single"><article>
+          {metric === "all" ? <>
+            <div className="charts all-charts">
+              {allGraphItems.map((item) => {
+                const option = ALL_GRAPH_OPTIONS.find((candidate) => candidate.value === item);
+                const chartMetric = item === "rainfall" ? "rainfall" : item === "accumulated" ? "accumulated" : "temperature";
+                const chartTemperatureKind = item === "maximum" || item === "minimum" || item === "mean" ? item : "mean";
+                return <article key={item}><h3>{option?.label}</h3><AxisChart rows={selected} metric={chartMetric} baseTemperature={baseTemperature} temperatureKind={chartTemperatureKind} label={`${periodLabel}の${option?.label}`} /></article>;
+              })}
+              {!allGraphItems.length && <p className="empty">表示するグラフ項目を選択してください。</p>}
+            </div>
+            <div className="control-group graph-options"><span>グラフの表示項目（複数選択可）</span><div className="year-options">
+              {ALL_GRAPH_OPTIONS.map((option) => <label key={option.value} className={allGraphItems.includes(option.value) ? "selected" : ""}>
+                <input type="checkbox" checked={allGraphItems.includes(option.value)} onChange={() => toggleAllGraphItem(option.value)} />{option.label}
+              </label>)}
+            </div></div>
+          </> : <div className="charts single"><article>
             {view === "year" && (metric === "temperature" || metric === "rainfall")
               ? <WeatherYearComparisonChart allRows={rows} currentRows={selected} currentYear={currentYear} comparisonYears={comparisonYears} metric={metric} kind={temperatureKind} />
               : <AxisChart rows={selected} metric={metric} baseTemperature={baseTemperature} temperatureKind={temperatureKind} label={`${periodLabel}の${metricLabel}`} />}
-          </article></div>
+          </article></div>}
         </section>
 
         <section className="panel">
           <div className="section-title"><div><p className="eyebrow">OBSERVATIONS</p><h2>観測データ</h2></div><span>{selected.length.toLocaleString("ja-JP")}日分</span></div>
           <div className="table-wrap"><table><thead><tr><th>日付</th>
+            {metric === "all" && <><th>湯浅 降水量</th><th>川辺 降水量</th><th>川辺 最高</th><th>川辺 平均</th><th>川辺 最低</th><th>積算温度</th></>}
             {metric === "rainfall" && <><th>湯浅 降水量</th><th>川辺 降水量</th></>}
             {metric === "temperature" && <th>川辺 {temperatureLabel(temperatureKind)}</th>}
             {metric === "accumulated" && <><th>川辺 平均</th><th>積算温度</th></>}
           </tr></thead><tbody>{selected.map((row, index) => ({ row, accumulated: accumulatedSeries[index] })).reverse().map(({ row, accumulated }) => <tr key={row.date}><th>{row.date.replaceAll("-", "/")}</th>
+            {metric === "all" && <><td>{show(row.yuasaRain)} mm</td><td>{show(row.kawabeRain)} mm</td><td>{show(row.maxTemp)} ℃</td><td>{show(row.meanTemp)} ℃</td><td>{show(row.minTemp)} ℃</td><td>{show(accumulated)} ℃・日</td></>}
             {metric === "rainfall" && <><td>{show(row.yuasaRain)} mm</td><td>{show(row.kawabeRain)} mm</td></>}
             {metric === "temperature" && <td>{show(temperatureValue(row, temperatureKind))} ℃</td>}
             {metric === "accumulated" && <><td>{show(row.meanTemp)} ℃</td><td>{show(accumulated)} ℃・日</td></>}

@@ -1,6 +1,6 @@
 import type { WeatherRecord } from "./weather-data";
 
-export type WeatherMetric = "rainfall" | "temperature" | "accumulated";
+export type WeatherMetric = "all" | "rainfall" | "temperature" | "accumulated";
 export type WeatherView = "30days" | "custom" | "year";
 export type BaseTemperature = 3 | 5 | 8;
 
