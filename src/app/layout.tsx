@@ -3,7 +3,7 @@ import "./globals.css";
 import "./controls.css";
 
 export const metadata: Metadata = {
-  title: "kisho-bot | 和歌山みかん気象",
+  title: "気象データBot",
   description: "気象庁アメダスの川辺・湯浅の気温と降水量を確認する気象アプリ",
 };
 

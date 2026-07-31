@@ -7,7 +7,7 @@ import {
 } from "@/features/weather/weather-data";
 import {
   filterWeatherPeriod, summarizeWeather,
-  type WeatherMetric, type WeatherView,
+  type BaseTemperature, type WeatherMetric, type WeatherView,
 } from "@/features/weather/weather-period";
 
 const show = (value: number | null) => value === null ? "—" : value.toFixed(1);
@@ -37,6 +37,7 @@ export default function KishoDashboard() {
   const [error, setError] = useState("");
   const [view, setView] = useState<WeatherView>("year");
   const [metric, setMetric] = useState<WeatherMetric>("all");
+  const [baseTemperature, setBaseTemperature] = useState<BaseTemperature>(5);
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
 
@@ -66,7 +67,10 @@ export default function KishoDashboard() {
     () => filterWeatherPeriod(rows, view, startDate, endDate),
     [rows, view, startDate, endDate],
   );
-  const summary = useMemo(() => summarizeWeather(selected), [selected]);
+  const summary = useMemo(
+    () => summarizeWeather(selected, baseTemperature),
+    [selected, baseTemperature],
+  );
   const issues = useMemo(() => validateWeather(rows), [rows]);
   const invalidPeriod = view === "custom" && Boolean(startDate && endDate && startDate > endDate);
   const showTemperature = metric !== "rainfall";
@@ -77,7 +81,7 @@ export default function KishoDashboard() {
 
   return <main className="kisho-shell">
     <header className="kisho-header">
-      <div><p className="eyebrow">KISHO BOT · WAKAYAMA</p><h1>みかん畑の気象</h1>
+      <div><p className="eyebrow">KISHO BOT · WAKAYAMA</p><h1>気象データBot</h1>
         <p>湯浅の雨と、川辺の気温。期間と表示情報を選んで確認できます。</p></div>
       <span className={`state ${status}`}>{status === "loading" ? "読込中" : status === "ready" ? "更新済み" : "取得失敗"}</span>
     </header>
@@ -107,13 +111,16 @@ export default function KishoDashboard() {
           <button className={metric === "temperature" ? "active" : ""} onClick={() => setMetric("temperature")}>気温</button>
           <button className={metric === "rainfall" ? "active" : ""} onClick={() => setMetric("rainfall")}>降水量</button>
         </div></div>
+        {showTemperature && <div className="control-group"><span>積算温度の基準温度</span><div className="segmented compact">
+          {([3, 5, 8] as const).map((temperature) => <button key={temperature} className={baseTemperature === temperature ? "active" : ""} onClick={() => setBaseTemperature(temperature)}>{temperature}℃</button>)}
+        </div><p className="formula-note">日平均気温から基準温度を引き、0を下回る日は加算しません。</p></div>}
         {invalidPeriod && <p className="period-error">開始日は終了日以前にしてください。</p>}
       </section>
 
       {!invalidPeriod && selected.length > 0 ? <>
         <section className={`cards ${metric !== "all" ? "single" : ""}`}>
           {showTemperature && <article className="card warm"><p>川辺 · {periodLabel}</p><h2>期間平均気温</h2><strong>{show(summary.meanTemperature)}<small>℃</small></strong>
-            <dl><div><dt>期間最高気温</dt><dd>{show(summary.maximumTemperature)} ℃</dd></div><div><dt>期間最低気温</dt><dd>{show(summary.minimumTemperature)} ℃</dd></div></dl></article>}
+            <dl><div><dt>有効積算温度（基準{baseTemperature}℃）</dt><dd>{show(summary.accumulatedTemperature)} ℃・日</dd></div><div><dt>期間最高気温</dt><dd>{show(summary.maximumTemperature)} ℃</dd></div><div><dt>期間最低気温</dt><dd>{show(summary.minimumTemperature)} ℃</dd></div>{summary.temperatureMissingDays > 0 && <div><dt>気温欠測日</dt><dd>{summary.temperatureMissingDays} 日</dd></div>}</dl></article>}
           {showRainfall && <article className="card rain"><p>湯浅 · {periodLabel}</p><h2>期間降水量</h2><strong>{show(summary.rainTotal)}<small>mm</small></strong>
             <dl><div><dt>降雨日数</dt><dd>{summary.rainDays} 日</dd></div><div><dt>日最大降水量</dt><dd>{show(summary.rainMaximum)} mm</dd></div></dl></article>}
         </section>

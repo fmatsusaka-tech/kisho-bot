@@ -39,7 +39,7 @@ describe("filterWeatherPeriod", () => {
 });
 
 describe("summarizeWeather", () => {
-  it("欠測を0扱いせず期間集計する", () => {
+  it("欠測を0扱いせず、既定5度で期間集計する", () => {
     expect(summarizeWeather(rows.slice(1))).toEqual({
       days: 3,
       rainTotal: 5,
@@ -48,6 +48,18 @@ describe("summarizeWeather", () => {
       meanTemperature: 7.5,
       maximumTemperature: 13,
       minimumTemperature: -1,
+      accumulatedTemperature: 5,
+      temperatureObservedDays: 2,
+      temperatureMissingDays: 1,
     });
+  });
+
+  it.each([
+    [3, 9],
+    [5, 5],
+    [8, 1],
+  ] as const)("基準温度%d度の有効積算温度を計算する", (base, expected) => {
+    expect(summarizeWeather(rows.slice(1), base).accumulatedTemperature)
+      .toBe(expected);
   });
 });
