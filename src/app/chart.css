@@ -21,6 +21,52 @@
   font-weight: 700;
 }
 .axis-unit { font-size: 12px; font-weight: 900; }
+.chart-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 14px;
+  margin-bottom: 10px;
+  color: color-mix(in srgb, var(--navy) 78%, var(--white));
+  font-size: .75rem;
+  font-weight: 800;
+}
+.chart-legend span {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+}
+.chart-legend i {
+  width: 26px;
+  border-top-width: 3px;
+}
+.year-options {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.year-options label {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 11px;
+  border: 1px solid color-mix(in srgb, var(--aqua) 55%, var(--white));
+  border-radius: 999px;
+  background: var(--white);
+  color: var(--navy);
+  cursor: pointer;
+  font-size: .78rem;
+  font-weight: 800;
+}
+.year-options label.selected {
+  border-color: var(--navy);
+  background: var(--navy);
+  color: var(--white);
+}
+.year-options input { accent-color: var(--navy); }
+.year-options label:has(input:disabled) {
+  opacity: .45;
+  cursor: not-allowed;
+}
 @media (max-width: 700px) {
   .charts article { overflow-x: auto; }
   .axis-chart { min-width: 520px; }
