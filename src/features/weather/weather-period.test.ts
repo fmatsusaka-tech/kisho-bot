@@ -1,5 +1,9 @@
 import { describe, expect, it } from "vitest";
-import { filterWeatherPeriod, summarizeWeather } from "./weather-period";
+import {
+  buildAccumulatedTemperatureSeries,
+  filterWeatherPeriod,
+  summarizeWeather,
+} from "./weather-period";
 import type { WeatherRecord } from "./weather-data";
 
 const row = (
@@ -22,6 +26,15 @@ const rows = [
 ];
 
 describe("filterWeatherPeriod", () => {
+  it("30日は末尾30件を選ぶ", () => {
+    const longRows = Array.from({ length: 35 }, (_, index) =>
+      row(`2026-01-${String(index + 1).padStart(2, "0")}`, 10, 12, 8, 0),
+    );
+    expect(filterWeatherPeriod(longRows, "30days", "", "")).toHaveLength(30);
+    expect(filterWeatherPeriod(longRows, "30days", "", "")[0].date)
+      .toBe("2026-01-06");
+  });
+
   it("今年は最新データが属する年を選ぶ", () => {
     expect(filterWeatherPeriod(rows, "year", "", "").map((item) => item.date))
       .toEqual(["2026-01-01", "2026-01-02", "2026-01-03"]);
@@ -38,28 +51,21 @@ describe("filterWeatherPeriod", () => {
   });
 });
 
-describe("summarizeWeather", () => {
-  it("欠測を0扱いせず、既定5度で期間集計する", () => {
-    expect(summarizeWeather(rows.slice(1))).toEqual({
-      days: 3,
-      rainTotal: 5,
-      rainDays: 1,
-      rainMaximum: 5,
-      meanTemperature: 7.5,
-      maximumTemperature: 13,
-      minimumTemperature: -1,
+describe("accumulated temperature", () => {
+  it.each([
+    [3, [3, 3, 9]],
+    [5, [1, 1, 5]],
+    [8, [0, 0, 1]],
+  ] as const)("基準温度%d度の累積系列を作る", (base, expected) => {
+    expect(buildAccumulatedTemperatureSeries(rows.slice(1), base))
+      .toEqual(expected);
+  });
+
+  it("欠測を0℃として減算せず、欠測日数を分ける", () => {
+    expect(summarizeWeather(rows.slice(1), 5)).toMatchObject({
       accumulatedTemperature: 5,
       temperatureObservedDays: 2,
       temperatureMissingDays: 1,
     });
-  });
-
-  it.each([
-    [3, 9],
-    [5, 5],
-    [8, 1],
-  ] as const)("基準温度%d度の有効積算温度を計算する", (base, expected) => {
-    expect(summarizeWeather(rows.slice(1), base).accumulatedTemperature)
-      .toBe(expected);
   });
 });

@@ -1,0 +1,27 @@
+.axis-chart {
+  display: block;
+  width: 100%;
+  min-width: 560px;
+  height: auto;
+  overflow: visible;
+}
+.grid-line {
+  stroke: color-mix(in srgb, var(--aqua) 28%, var(--white));
+  stroke-width: 1;
+}
+.grid-line.vertical { stroke-dasharray: 3 5; }
+.axis-line {
+  stroke: var(--navy);
+  stroke-width: 1.25;
+}
+.tick-label, .axis-unit {
+  fill: color-mix(in srgb, var(--navy) 72%, var(--white));
+  font-family: inherit;
+  font-size: 11px;
+  font-weight: 700;
+}
+.axis-unit { font-size: 12px; font-weight: 900; }
+@media (max-width: 700px) {
+  .charts article { overflow-x: auto; }
+  .axis-chart { min-width: 520px; }
+}
