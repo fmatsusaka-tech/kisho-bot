@@ -121,8 +121,8 @@ export default function KishoDashboard() {
         <section className="panel">
           <div className="section-title"><div><p className="eyebrow">WEATHER TREND</p><h2>{periodLabel}の推移</h2></div><span>{summary.days.toLocaleString("ja-JP")}日分</span></div>
           <div className={`charts ${metric !== "all" ? "single" : ""}`}>
-            {showTemperature && <article><h3>川辺 平均気温</h3><b>{show(summary.meanTemperature)} ℃ 平均</b><WeatherChart rows={selected} field="meanTemp" color="#dc6838" label={`${periodLabel}の川辺平均気温`} /></article>}
-            {showRainfall && <article><h3>湯浅 降水量</h3><b>{show(summary.rainTotal)} mm 合計</b><WeatherChart rows={selected} field="yuasaRain" color="#287ca5" label={`${periodLabel}の湯浅降水量`} /></article>}
+            {showTemperature && <article><h3>川辺 平均気温</h3><b>{show(summary.meanTemperature)} ℃ 平均</b><WeatherChart rows={selected} field="meanTemp" color="var(--navy)" label={`${periodLabel}の川辺平均気温`} /></article>}
+            {showRainfall && <article><h3>湯浅 降水量</h3><b>{show(summary.rainTotal)} mm 合計</b><WeatherChart rows={selected} field="yuasaRain" color="var(--aqua)" label={`${periodLabel}の湯浅降水量`} /></article>}
           </div>
         </section>
 
