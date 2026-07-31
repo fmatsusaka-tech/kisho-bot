@@ -19,17 +19,19 @@ const calendarDay = (date: string) => {
   return (Date.UTC(2001, month - 1, day) - start) / 86_400_000;
 };
 
-export default function TemperatureComparisonChart({
+export default function WeatherYearComparisonChart({
   allRows,
   currentRows,
   currentYear,
   comparisonYears,
+  metric,
   kind,
 }: {
   allRows: WeatherRecord[];
   currentRows: WeatherRecord[];
   currentYear: string;
   comparisonYears: string[];
+  metric: "rainfall" | "temperature";
   kind: TemperatureKind;
 }) {
   const series: Series[] = [
@@ -41,17 +43,20 @@ export default function TemperatureComparisonChart({
       dash: index === 0 ? "10 6" : "3 6",
     })),
   ];
+  const valueOf = (row: WeatherRecord) =>
+    metric === "rainfall" ? row.yuasaRain : temperatureValue(row, kind);
   const valid = series.flatMap((item) =>
-    item.rows.map((row) => temperatureValue(row, kind))
+    item.rows.map(valueOf)
       .filter((value): value is number => value !== null),
   );
   if (valid.length < 2) return <p className="empty">表示できるデータがありません。</p>;
 
   const width = 720, height = 290, left = 64, right = 18, top = 24, bottom = 48;
   const plotWidth = width - left - right, plotHeight = height - top - bottom;
-  const min = Math.floor(Math.min(...valid) - 1);
+  const min = metric === "rainfall" ? 0 : Math.floor(Math.min(...valid) - 1);
   const max = Math.ceil(Math.max(...valid) + 1);
   const span = Math.max(max - min, 1);
+  const label = metric === "rainfall" ? "降水量" : temperatureLabel(kind);
   const x = (day: number) => left + day / 364 * plotWidth;
   const y = (value: number) => top + (max - value) / span * plotHeight;
   const yTicks = Array.from({ length: 5 }, (_, index) => max - span * index / 4);
@@ -63,11 +68,11 @@ export default function TemperatureComparisonChart({
       {series.map((item) => <span key={item.year}><i style={{ borderColor: item.stroke, borderStyle: item.dash ? "dashed" : "solid" }} />{item.year}年</span>)}
     </div>;
   return <ChartViewport legend={legend}>
-    <svg className="axis-chart" viewBox={`0 0 ${width} ${height}`} role="img" aria-label={`今年と比較年の${temperatureLabel(kind)}`}>
-      <text x={left} y="13" className="axis-unit">℃</text>
+    <svg className="axis-chart" viewBox={`0 0 ${width} ${height}`} role="img" aria-label={`今年と比較年の${label}`}>
+      <text x={left} y="13" className="axis-unit">{metric === "rainfall" ? "mm" : "℃"}</text>
       {yTicks.map((tick) => <g key={tick}>
         <line x1={left} y1={y(tick)} x2={width - right} y2={y(tick)} className="grid-line" />
-        <text x={left - 9} y={y(tick) + 4} textAnchor="end" className="tick-label">{tick.toFixed(1)}</text>
+        <text x={left - 9} y={y(tick) + 4} textAnchor="end" className="tick-label">{tick.toFixed(metric === "rainfall" ? 0 : 1)}</text>
       </g>)}
       {xTicks.map(([label, day]) => <g key={label}>
         <line x1={x(day)} y1={top} x2={x(day)} y2={height - bottom} className="grid-line vertical" />
@@ -77,7 +82,7 @@ export default function TemperatureComparisonChart({
       <line x1={left} y1={top} x2={left} y2={height - bottom} className="axis-line" />
       {series.map((item) => {
         const points = item.rows.flatMap((row) => {
-          const value = temperatureValue(row, kind);
+          const value = valueOf(row);
           return value === null ? [] : [`${x(calendarDay(row.date))},${y(value)}`];
         }).join(" ");
         return <polyline key={item.year} points={points} fill="none" stroke={item.stroke} strokeWidth="3" strokeDasharray={item.dash} vectorEffect="non-scaling-stroke" />;

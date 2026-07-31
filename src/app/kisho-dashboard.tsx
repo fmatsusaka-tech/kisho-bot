@@ -10,7 +10,7 @@ import {
   type BaseTemperature, type WeatherMetric, type WeatherView,
 } from "@/features/weather/weather-period";
 import ChartViewport from "./chart-viewport";
-import TemperatureComparisonChart from "./temperature-comparison-chart";
+import WeatherYearComparisonChart from "./weather-year-comparison-chart";
 import {
   temperatureLabel,
   temperatureValue,
@@ -189,7 +189,7 @@ export default function KishoDashboard() {
           <button className={temperatureKind === "mean" ? "active" : ""} onClick={() => setTemperatureKind("mean")}>平均気温</button>
           <button className={temperatureKind === "minimum" ? "active" : ""} onClick={() => setTemperatureKind("minimum")}>最低気温</button>
         </div></div>}
-        {view === "year" && metric === "temperature" && <div className="control-group"><span>比較年（2つまで）</span><div className="year-options">
+        {view === "year" && (metric === "temperature" || metric === "rainfall") && <div className="control-group"><span>比較年（2つまで）</span><div className="year-options">
           {availableComparisonYears.map((year) => <label key={year} className={comparisonYears.includes(year) ? "selected" : ""}>
             <input type="checkbox" checked={comparisonYears.includes(year)} disabled={!comparisonYears.includes(year) && comparisonYears.length >= 2} onChange={() => toggleComparisonYear(year)} />
             {year}年
@@ -214,8 +214,8 @@ export default function KishoDashboard() {
         <section className="panel">
           <div className="section-title"><div><p className="eyebrow">WEATHER TREND</p><h2>{periodLabel}の{metricLabel}</h2></div><span>{summary.days.toLocaleString("ja-JP")}日分</span></div>
           <div className="charts single"><article>
-            {view === "year" && metric === "temperature"
-              ? <TemperatureComparisonChart allRows={rows} currentRows={selected} currentYear={currentYear} comparisonYears={comparisonYears} kind={temperatureKind} />
+            {view === "year" && (metric === "temperature" || metric === "rainfall")
+              ? <WeatherYearComparisonChart allRows={rows} currentRows={selected} currentYear={currentYear} comparisonYears={comparisonYears} metric={metric} kind={temperatureKind} />
               : <AxisChart rows={selected} metric={metric} baseTemperature={baseTemperature} temperatureKind={temperatureKind} label={`${periodLabel}の${metricLabel}`} />}
           </article></div>
         </section>
