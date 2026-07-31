@@ -56,7 +56,11 @@ function AxisChart({ rows, metric, baseTemperature, temperatureKind, label }: {
     Math.round((values.length - 1) * index / 4),
   ))];
   const unit = metric === "rainfall" ? "mm" : metric === "temperature" ? "℃" : "℃・日";
-  const color = metric === "rainfall" ? "var(--aqua)" : "var(--navy)";
+  const color = metric === "rainfall"
+    ? "var(--chart-blue)"
+    : metric === "temperature"
+      ? "var(--chart-red)"
+      : "var(--chart-green)";
 
   return <ChartViewport><svg className="axis-chart" viewBox={`0 0 ${width} ${height}`} role="img" aria-label={label}>
     <text x={left} y="13" className="axis-unit">{unit}</text>

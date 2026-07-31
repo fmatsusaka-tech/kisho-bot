@@ -33,11 +33,11 @@ export default function TemperatureComparisonChart({
   kind: TemperatureKind;
 }) {
   const series: Series[] = [
-    { year: currentYear, rows: currentRows, stroke: "var(--navy)" },
+    { year: currentYear, rows: currentRows, stroke: "var(--chart-red)" },
     ...comparisonYears.map((year, index) => ({
       year,
       rows: allRows.filter((row) => row.date.startsWith(`${year}-`)),
-      stroke: index === 0 ? "var(--aqua)" : "var(--navy)",
+      stroke: index === 0 ? "var(--chart-blue)" : "var(--chart-green)",
       dash: index === 0 ? "10 6" : "3 6",
     })),
   ];
