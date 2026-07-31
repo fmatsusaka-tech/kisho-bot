@@ -29,6 +29,13 @@ const ALL_GRAPH_OPTIONS: { value: AllGraphItem; label: string }[] = [
   { value: "minimum", label: "最低気温" }, { value: "rainfall", label: "降水量" },
   { value: "accumulated", label: "積算温度" },
 ];
+const ALL_GRAPH_PALETTES: Record<AllGraphItem, readonly [string, string, string]> = {
+  maximum: ["#dc2626", "#2563eb", "#16a34a"],
+  mean: ["#f97316", "#7c3aed", "#0891b2"],
+  minimum: ["#db2777", "#0d9488", "#65a30d"],
+  rainfall: ["#1d4ed8", "#06b6d4", "#9333ea"],
+  accumulated: ["#b45309", "#e11d48", "#15803d"],
+};
 
 function AxisChart({ rows, metric, baseTemperature, temperatureKind, label }: {
   rows: WeatherRecord[];
@@ -205,7 +212,7 @@ export default function KishoDashboard() {
           <button className={temperatureKind === "mean" ? "active" : ""} onClick={() => setTemperatureKind("mean")}>平均気温</button>
           <button className={temperatureKind === "minimum" ? "active" : ""} onClick={() => setTemperatureKind("minimum")}>最低気温</button>
         </div></div>}
-        {view === "year" && (metric === "temperature" || metric === "rainfall") && <div className="control-group"><span>比較年（2つまで）</span><div className="year-options">
+        {view === "year" && (metric === "all" || metric === "temperature" || metric === "rainfall") && <div className="control-group"><span>比較年（2つまで）</span><div className="year-options">
           {availableComparisonYears.map((year) => <label key={year} className={comparisonYears.includes(year) ? "selected" : ""}>
             <input type="checkbox" checked={comparisonYears.includes(year)} disabled={!comparisonYears.includes(year) && comparisonYears.length >= 2} onChange={() => toggleComparisonYear(year)} />
             {year}年
@@ -235,7 +242,11 @@ export default function KishoDashboard() {
                 const option = ALL_GRAPH_OPTIONS.find((candidate) => candidate.value === item);
                 const chartMetric = item === "rainfall" ? "rainfall" : item === "accumulated" ? "accumulated" : "temperature";
                 const chartTemperatureKind = item === "maximum" || item === "minimum" || item === "mean" ? item : "mean";
-                return <article key={item}><h3>{option?.label}</h3><AxisChart rows={selected} metric={chartMetric} baseTemperature={baseTemperature} temperatureKind={chartTemperatureKind} label={`${periodLabel}の${option?.label}`} /></article>;
+                return <article key={item}><h3>{option?.label}</h3>
+                  {view === "year"
+                    ? <WeatherYearComparisonChart allRows={rows} currentRows={selected} currentYear={currentYear} comparisonYears={comparisonYears} metric={chartMetric} kind={chartTemperatureKind} baseTemperature={baseTemperature} colors={ALL_GRAPH_PALETTES[item]} />
+                    : <AxisChart rows={selected} metric={chartMetric} baseTemperature={baseTemperature} temperatureKind={chartTemperatureKind} label={`${periodLabel}の${option?.label}`} />}
+                </article>;
               })}
               {!allGraphItems.length && <p className="empty">表示するグラフ項目を選択してください。</p>}
             </div>
@@ -246,7 +257,7 @@ export default function KishoDashboard() {
             </div></div>
           </> : <div className="charts single"><article>
             {view === "year" && (metric === "temperature" || metric === "rainfall")
-              ? <WeatherYearComparisonChart allRows={rows} currentRows={selected} currentYear={currentYear} comparisonYears={comparisonYears} metric={metric} kind={temperatureKind} />
+              ? <WeatherYearComparisonChart allRows={rows} currentRows={selected} currentYear={currentYear} comparisonYears={comparisonYears} metric={metric} kind={temperatureKind} baseTemperature={baseTemperature} />
               : <AxisChart rows={selected} metric={metric} baseTemperature={baseTemperature} temperatureKind={temperatureKind} label={`${periodLabel}の${metricLabel}`} />}
           </article></div>}
         </section>
