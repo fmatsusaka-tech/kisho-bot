@@ -238,6 +238,10 @@ export default function KishoDashboard() {
         <p>欠測は0に置き換えず「—」で表示します。毎朝、直近3日を再取得して気象庁の訂正を反映します。</p></div>
         <a href={WEATHER_SPREADSHEET_URL} target="_blank" rel="noreferrer">元データを開く ↗</a></section>
     </>}
-    <footer><span>観測地点：気象庁アメダス 川辺・湯浅</span><span>データ期間：2015年以降（順次整備）</span></footer>
+    <footer>
+      <span>観測地点：気象庁アメダス 川辺・湯浅　データ期間：2015年以降（順次整備）</span>
+      <span>出典：気象庁「過去の気象データ・ダウンロード」をもとに、まつさか農園が加工・集計<br />
+        <a href="https://www.data.jma.go.jp/" target="_blank" rel="noreferrer">https://www.data.jma.go.jp/ ↗</a></span>
+    </footer>
   </main>;
 }
