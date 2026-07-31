@@ -67,7 +67,85 @@
   opacity: .45;
   cursor: not-allowed;
 }
+.chart-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 10px;
+  color: var(--navy);
+  font-size: .78rem;
+  font-weight: 900;
+}
+.chart-toolbar > div {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+.chart-toolbar button {
+  min-width: 38px;
+  min-height: 38px;
+  border: 1px solid color-mix(in srgb, var(--aqua) 55%, var(--white));
+  border-radius: 10px;
+  background: var(--white);
+  color: var(--navy);
+  font: inherit;
+  font-size: 1rem;
+  font-weight: 900;
+}
+.chart-toolbar button:not(:disabled) { cursor: pointer; }
+.chart-toolbar button:disabled { opacity: .35; }
+.chart-toolbar .expand-button {
+  padding-inline: 12px;
+  background: var(--navy);
+  color: var(--white);
+  font-size: .75rem;
+}
+.chart-toolbar output {
+  min-width: 46px;
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+}
+.chart-scroll {
+  width: 100%;
+  overflow: auto hidden;
+  overscroll-behavior-inline: contain;
+  scrollbar-color: var(--aqua) color-mix(in srgb, var(--aqua) 15%, var(--white));
+  scrollbar-width: thin;
+  touch-action: pan-x pan-y;
+}
+.chart-scale {
+  min-width: 100%;
+  transition: width .2s ease;
+}
+.chart-help {
+  margin: 8px 0 0;
+  color: color-mix(in srgb, var(--navy) 66%, var(--white));
+  font-size: .72rem;
+  font-weight: 700;
+}
+.chart-viewer.expanded {
+  position: fixed;
+  z-index: 1000;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  padding: max(16px, env(safe-area-inset-top)) max(12px, env(safe-area-inset-right)) max(16px, env(safe-area-inset-bottom)) max(12px, env(safe-area-inset-left));
+  background: var(--white);
+}
+.chart-viewer.expanded .chart-scroll {
+  flex: 1;
+  display: flex;
+  align-items: center;
+}
+.chart-viewer.expanded .chart-scale { min-width: 720px; }
+.chart-modal-open { overflow: hidden; }
 @media (max-width: 700px) {
-  .charts article { overflow-x: auto; }
-  .axis-chart { min-width: 520px; }
+  .charts article { overflow: visible; }
+  .axis-chart { min-width: 100%; }
+  .chart-scale { min-width: 560px; }
+  .chart-viewer.expanded .chart-scale { min-width: 720px; }
+  .chart-toolbar > span { display: none; }
+  .chart-toolbar { justify-content: flex-end; }
+  .chart-help { display: block; }
 }

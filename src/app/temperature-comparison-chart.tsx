@@ -1,4 +1,5 @@
 import type { WeatherRecord } from "@/features/weather/weather-data";
+import ChartViewport from "./chart-viewport";
 import {
   temperatureLabel,
   temperatureValue,
@@ -58,10 +59,10 @@ export default function TemperatureComparisonChart({
     ["1/1", 0], ["4/1", 90], ["7/1", 181], ["10/1", 273], ["12/31", 364],
   ] as const;
 
-  return <div>
-    <div className="chart-legend" aria-label="比較年の凡例">
+  const legend = <div className="chart-legend" aria-label="比較年の凡例">
       {series.map((item) => <span key={item.year}><i style={{ borderColor: item.stroke, borderStyle: item.dash ? "dashed" : "solid" }} />{item.year}年</span>)}
-    </div>
+    </div>;
+  return <ChartViewport legend={legend}>
     <svg className="axis-chart" viewBox={`0 0 ${width} ${height}`} role="img" aria-label={`今年と比較年の${temperatureLabel(kind)}`}>
       <text x={left} y="13" className="axis-unit">℃</text>
       {yTicks.map((tick) => <g key={tick}>
@@ -82,5 +83,5 @@ export default function TemperatureComparisonChart({
         return <polyline key={item.year} points={points} fill="none" stroke={item.stroke} strokeWidth="3" strokeDasharray={item.dash} vectorEffect="non-scaling-stroke" />;
       })}
     </svg>
-  </div>;
+  </ChartViewport>;
 }
