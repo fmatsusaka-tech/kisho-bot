@@ -2,6 +2,7 @@ import type { WeatherRecord } from "./weather-data";
 
 export type WeatherMetric = "all" | "temperature" | "rainfall";
 export type WeatherView = "year" | "custom";
+export type BaseTemperature = 3 | 5 | 8;
 
 export const filterWeatherPeriod = (
   rows: readonly WeatherRecord[],
@@ -21,7 +22,10 @@ export const filterWeatherPeriod = (
 const present = (values: readonly (number | null)[]) =>
   values.filter((value): value is number => value !== null);
 
-export const summarizeWeather = (rows: readonly WeatherRecord[]) => {
+export const summarizeWeather = (
+  rows: readonly WeatherRecord[],
+  baseTemperature: BaseTemperature = 5,
+) => {
   const rain = present(rows.map((row) => row.yuasaRain));
   const means = present(rows.map((row) => row.meanTemp));
   const highs = present(rows.map((row) => row.maxTemp));
@@ -36,5 +40,13 @@ export const summarizeWeather = (rows: readonly WeatherRecord[]) => {
       : null,
     maximumTemperature: highs.length ? Math.max(...highs) : null,
     minimumTemperature: lows.length ? Math.min(...lows) : null,
+    accumulatedTemperature: means.length
+      ? means.reduce(
+          (sum, value) => sum + Math.max(value - baseTemperature, 0),
+          0,
+        )
+      : null,
+    temperatureObservedDays: means.length,
+    temperatureMissingDays: rows.length - means.length,
   };
 };

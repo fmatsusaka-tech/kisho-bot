@@ -13,6 +13,7 @@
 .date-fields input:focus { border-color: var(--navy); box-shadow: 0 0 0 3px color-mix(in srgb, var(--aqua) 25%, transparent); }
 .date-fields > span { padding-bottom: 11px; color: var(--navy); }
 .period-error { margin: 0; color: var(--navy); font-size: .82rem; font-weight: 900; }
+.formula-note { margin: 0; color: color-mix(in srgb, var(--navy) 62%, var(--white)); font-size: .72rem; line-height: 1.6; }
 .cards.single, .charts.single { grid-template-columns: minmax(0, 1fr); }
 .cards.single .card { max-width: 740px; }
 .empty { color: color-mix(in srgb, var(--navy) 60%, var(--white)); }
