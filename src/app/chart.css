@@ -129,28 +129,13 @@
   font-size: .72rem;
   font-weight: 700;
 }
-.chart-viewer.expanded {
-  position: fixed;
-  z-index: 1000;
-  inset: 0;
-  display: flex;
-  flex-direction: column;
-  padding: max(16px, env(safe-area-inset-top)) max(12px, env(safe-area-inset-right)) max(16px, env(safe-area-inset-bottom)) max(12px, env(safe-area-inset-left));
-  background: var(--white);
-}
-.chart-viewer.expanded .chart-scroll {
-  flex: 1;
-  display: flex;
-  align-items: center;
-}
-.chart-viewer.expanded .chart-scale { min-width: 720px; }
-.chart-modal-open { overflow: hidden; }
+.popup-error { margin: 0 0 10px; color: var(--chart-red); font-size: .75rem; font-weight: 800; }
 @media (max-width: 700px) {
   .charts article { overflow: visible; }
   .axis-chart { min-width: 100%; }
   .chart-scale { min-width: 560px; }
-  .chart-viewer.expanded .chart-scale { min-width: 720px; }
   .chart-toolbar > span { display: none; }
   .chart-toolbar { justify-content: flex-end; }
+  .chart-toolbar .expand-button { min-width: 108px; }
   .chart-help { display: block; }
 }
