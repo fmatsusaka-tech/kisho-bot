@@ -65,7 +65,6 @@ export default function AllWeatherChart({
     item,
     values: valuesFor(entry.rows, item, baseTemperature),
     color: COLORS[item][entry.yearIndex],
-    dash: entry.yearIndex === 0 ? undefined : entry.yearIndex === 1 ? "10 6" : "3 6",
   })));
 
   const temperatureItems = new Set<AllGraphItem>(["maximum", "mean", "minimum"]);
@@ -88,7 +87,7 @@ export default function AllWeatherChart({
       return [row ? `${Number(row.date.slice(5, 7))}/${Number(row.date.slice(8, 10))}` : "", rowIndex] as const;
     });
   const legend = <div className="chart-legend all-chart-legend" aria-label="グラフの凡例">
-    {lines.map((line) => <span key={`${line.item}-${line.year}`}><i style={{ borderColor: line.color, borderStyle: line.dash ? "dashed" : "solid" }} />
+    {lines.map((line) => <span key={`${line.item}-${line.year}`}><i style={{ borderColor: line.color, borderStyle: "solid" }} />
       {ALL_GRAPH_OPTIONS.find((option) => option.value === line.item)?.label}{compareYears ? `・${line.year}年` : ""}</span>)}
   </div>;
 
@@ -112,6 +111,6 @@ export default function AllWeatherChart({
     {lines.map((line) => <polyline key={`${line.item}-${line.year}`} points={line.rows.flatMap((row, index) => {
       const value = line.values[index];
       return value === null ? [] : [`${x(row, index, line.rows.length)},${yFor(line.item, value)}`];
-    }).join(" ")} fill="none" stroke={line.color} strokeWidth="3" strokeDasharray={line.dash} vectorEffect="non-scaling-stroke" />)}
+    }).join(" ")} fill="none" stroke={line.color} strokeWidth="2" vectorEffect="non-scaling-stroke" />)}
   </svg></ChartViewport>;
 }
