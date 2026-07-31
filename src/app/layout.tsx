@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import "./globals.css";
+import "./controls.css";
 
 export const metadata: Metadata = {
   title: "kisho-bot | 和歌山みかん気象",

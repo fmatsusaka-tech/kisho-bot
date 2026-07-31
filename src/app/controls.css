@@ -1,0 +1,22 @@
+.controls { display: grid; gap: 20px; margin-bottom: 18px; }
+.control-group { display: grid; gap: 8px; }
+.control-group > span, .date-fields label { color: #647067; font-size: .75rem; font-weight: 800; }
+.segmented { display: flex; width: fit-content; max-width: 100%; border: 1px solid #bfc8bf; border-radius: 12px; padding: 3px; background: #eef1ec; }
+.segmented button { border: 0; border-radius: 9px; padding: 10px 15px; background: transparent; color: #4c5b50; font-size: .83rem; font-weight: 800; cursor: pointer; }
+.segmented button.active { background: #234d31; color: white; box-shadow: 0 3px 10px #19352133; }
+.segmented.compact button { padding-block: 8px; }
+.date-fields { display: flex; align-items: flex-end; gap: 10px; }
+.date-fields label { display: grid; gap: 6px; }
+.date-fields input { min-height: 42px; border: 1px solid #bfc8bf; border-radius: 9px; padding: 7px 10px; background: white; color: #19251d; }
+.date-fields > span { padding-bottom: 10px; color: #68736b; }
+.period-error { margin: 0; color: #a12f29; font-size: .85rem; font-weight: 700; }
+.cards.single, .charts.single { grid-template-columns: minmax(0, 1fr); }
+.cards.single .card { max-width: 720px; }
+.empty { color: #68736b; }
+@media (max-width: 700px) {
+  .segmented { width: 100%; }
+  .segmented button { flex: 1; padding-inline: 8px; }
+  .date-fields { align-items: stretch; flex-direction: column; }
+  .date-fields > span { display: none; }
+  .date-fields input { width: 100%; }
+}
