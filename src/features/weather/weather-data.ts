@@ -15,6 +15,11 @@ export type WeatherRecord = {
   kawabeRain: number | null;
 };
 
+export type RainfallStation = "yuasa" | "kawabe";
+
+export const rainfallValue = (row: WeatherRecord, station: RainfallStation) =>
+  station === "yuasa" ? row.yuasaRain : row.kawabeRain;
+
 const required = ["年月日", "降水量（湯浅）", "平均気温（川辺）", "最高気温（川辺）", "最低気温（川辺）", "15日平均気温（川辺）", "30日平均気温（川辺）", "15日積算降水量（湯浅）", "30日積算降水量（湯浅）", "降水量（川辺・比較用）"];
 
 const csvRows = (text: string) => {

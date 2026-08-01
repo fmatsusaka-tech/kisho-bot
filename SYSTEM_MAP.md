@@ -24,7 +24,7 @@ GitHub Actionsはソースから静的ファイルを生成し、GitHub Pagesへ
 | `src/app/page.tsx` | ダッシュボードを表示する入口 |
 | `src/app/kisho-dashboard.tsx` | CSV取得、期間・指標選択、集計値、表、エラー表示を統括 |
 | `src/app/weather-year-comparison-chart.tsx` | 今年または指定期間と、最大2つの比較年を表示 |
-| `src/app/all-weather-chart.tsx` | 気温・降水量・積算温度を一枚に重ねて表示 |
+| `src/app/all-weather-chart.tsx` | 気温・選択地点の降水量・積算温度を一枚に重ねて表示 |
 | `src/app/chart-viewport.tsx` | 0.5〜5倍ズーム、横スクロール、通常・別画面の縦軸固定 |
 
 ## ロジックとデータ
@@ -38,6 +38,8 @@ GitHub Actionsはソースから静的ファイルを生成し、GitHub Pagesへ
 公開CSVで必須の列名は `weather-data.ts` の `required` 配列が契約です。日付は `YYYY/M/D` 形式を読み、内部では `YYYY-MM-DD` に正規化します。CSVの行は日付順に並べ替えます。
 
 指定期間の年比較は、選択した開始日・終了日を同じ月日の比較年へ移します。年をまたぐ期間は期間全体を同じ年数だけ移動し、2月29日は比較年に存在する月末へ丸めます。
+
+「全部」の降水量は初期状態で湯浅を使い、利用者が川辺へ切り替えると複合グラフ・凡例・観測表が同じ地点へ切り替わります。個別の「降水量」は従来どおり湯浅を主対象とし、観測表には比較用の川辺も表示します。
 
 ## 外部サービス
 
