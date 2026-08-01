@@ -27,15 +27,16 @@ const dateLabel = (date: string) => {
   return `${Number(month)}/${Number(day)}`;
 };
 
-function AxisChart({ rows, metric, baseTemperature, temperatureKind, label }: {
+function AxisChart({ rows, metric, baseTemperature, temperatureKind, label, rainfallStation = "yuasa" }: {
   rows: WeatherRecord[];
   metric: Exclude<WeatherMetric, "all">;
   baseTemperature: BaseTemperature;
   temperatureKind: TemperatureKind;
   label: string;
+  rainfallStation?: RainfallStation;
 }) {
   const values = metric === "rainfall"
-    ? rows.map((row) => row.yuasaRain)
+    ? rows.map((row) => rainfallValue(row, rainfallStation))
     : metric === "temperature"
       ? rows.map((row) => temperatureValue(row, temperatureKind))
       : buildAccumulatedTemperatureSeries(rows, baseTemperature);
@@ -90,7 +91,7 @@ export default function KishoDashboard() {
   const [metric, setMetric] = useState<WeatherMetric>("rainfall");
   const [baseTemperature, setBaseTemperature] = useState<BaseTemperature>(5);
   const [temperatureKind, setTemperatureKind] = useState<TemperatureKind>("mean");
-  const [allRainfallStation, setAllRainfallStation] = useState<RainfallStation>("yuasa");
+  const [rainfallStation, setRainfallStation] = useState<RainfallStation>("yuasa");
   const [comparisonYears, setComparisonYears] = useState<string[]>([]);
   const [allGraphItems, setAllGraphItems] = useState<AllGraphItem[]>(ALL_GRAPH_OPTIONS.map((option) => option.value));
   const [startDate, setStartDate] = useState("");
@@ -154,8 +155,8 @@ export default function KishoDashboard() {
     [comparisonYears, primaryEndDate, primaryStartDate, rows],
   );
   const summary = useMemo(
-    () => summarizeWeather(selected, baseTemperature),
-    [selected, baseTemperature],
+    () => summarizeWeather(selected, baseTemperature, rainfallStation),
+    [selected, baseTemperature, rainfallStation],
   );
   const accumulatedSeries = useMemo(
     () => buildAccumulatedTemperatureSeries(selected, baseTemperature),
@@ -168,7 +169,8 @@ export default function KishoDashboard() {
     : view === "year"
       ? `${latest?.date.slice(0, 4) ?? ""}年`
       : `${startDate.replaceAll("-", "/")}〜${endDate.replaceAll("-", "/")}`;
-  const metricLabel = metric === "all" ? "全気象データ" : metric === "rainfall" ? "降水量" : metric === "temperature" ? temperatureLabel(temperatureKind) : "積算温度";
+  const rainfallStationLabel = rainfallStation === "yuasa" ? "湯浅" : "川辺";
+  const metricLabel = metric === "all" ? "全気象データ" : metric === "rainfall" ? `${rainfallStationLabel}の降水量` : metric === "temperature" ? temperatureLabel(temperatureKind) : "積算温度";
   const selectedTemperature = temperatureKind === "maximum"
     ? summary.maximumTemperature
     : temperatureKind === "minimum"
@@ -189,7 +191,7 @@ export default function KishoDashboard() {
       <section className="latest">
         <div><span>最新観測日</span><strong>{latest.date.replaceAll("-", "/")}</strong></div>
         <div><span>川辺 平均気温</span><strong>{show(latest.meanTemp)}<small>℃</small></strong></div>
-        <div><span>湯浅 降水量</span><strong>{show(latest.yuasaRain)}<small>mm</small></strong></div>
+        <div><span>{rainfallStationLabel} 降水量</span><strong>{show(rainfallValue(latest, rainfallStation))}<small>mm</small></strong></div>
       </section>
 
       <section className="controls panel">
@@ -223,16 +225,16 @@ export default function KishoDashboard() {
         {(metric === "accumulated" || metric === "all") && <div className="control-group"><span>積算温度の基準温度</span><div className="segmented compact">
           {([3, 5, 8] as const).map((temperature) => <button key={temperature} className={baseTemperature === temperature ? "active" : ""} onClick={() => setBaseTemperature(temperature)}>{temperature}℃</button>)}
         </div><p className="formula-note">Σ max（日平均気温 − 基準温度, 0）</p></div>}
-        {metric === "all" && <div className="control-group"><span>降水量の地点</span><div className="segmented compact">
-          <button className={allRainfallStation === "yuasa" ? "active" : ""} onClick={() => setAllRainfallStation("yuasa")}>湯浅</button>
-          <button className={allRainfallStation === "kawabe" ? "active" : ""} onClick={() => setAllRainfallStation("kawabe")}>川辺</button>
+        {(metric === "all" || metric === "rainfall") && <div className="control-group"><span>降水量の地点</span><div className="segmented compact">
+          <button className={rainfallStation === "yuasa" ? "active" : ""} onClick={() => setRainfallStation("yuasa")}>湯浅</button>
+          <button className={rainfallStation === "kawabe" ? "active" : ""} onClick={() => setRainfallStation("kawabe")}>川辺</button>
         </div></div>}
         {invalidPeriod && <p className="period-error">開始日は終了日以前にしてください。</p>}
       </section>
 
       {!invalidPeriod && selected.length > 0 ? <>
         {metric !== "all" && <section className="cards single">
-          {metric === "rainfall" && <article className="card rain"><p>湯浅 · {periodLabel}</p><h2>期間降水量</h2><strong>{show(summary.rainTotal)}<small>mm</small></strong>
+          {metric === "rainfall" && <article className="card rain"><p>{rainfallStationLabel} · {periodLabel}</p><h2>期間降水量</h2><strong>{show(summary.rainTotal)}<small>mm</small></strong>
             <dl><div><dt>降雨日数</dt><dd>{summary.rainDays} 日</dd></div><div><dt>日最大降水量</dt><dd>{show(summary.rainMaximum)} mm</dd></div></dl></article>}
           {metric === "temperature" && <article className="card warm"><p>川辺 · {periodLabel}</p><h2>期間{temperatureLabel(temperatureKind)}</h2><strong>{show(selectedTemperature)}<small>℃</small></strong>
             <dl><div><dt>期間平均気温</dt><dd>{show(summary.meanTemperature)} ℃</dd></div><div><dt>期間最高 / 最低</dt><dd>{show(summary.maximumTemperature)} / {show(summary.minimumTemperature)} ℃</dd></div></dl></article>}
@@ -244,7 +246,7 @@ export default function KishoDashboard() {
           <div className="section-title"><div><p className="eyebrow">WEATHER TREND</p><h2>{periodLabel}の{metricLabel}</h2></div><span>{summary.days.toLocaleString("ja-JP")}日分</span></div>
           {metric === "all" ? <>
             <div className="charts single"><article>
-              <AllWeatherChart currentRows={selected} currentYear={primaryPeriodYear} comparisonSeries={comparisonSeries} items={allGraphItems} baseTemperature={baseTemperature} rainfallStation={allRainfallStation} comparePeriods={comparisonEnabled && comparisonYears.length > 0} />
+              <AllWeatherChart currentRows={selected} currentYear={primaryPeriodYear} comparisonSeries={comparisonSeries} items={allGraphItems} baseTemperature={baseTemperature} rainfallStation={rainfallStation} comparePeriods={comparisonEnabled && comparisonYears.length > 0} />
             </article></div>
             <div className="control-group graph-options"><span>グラフの表示項目（複数選択可）</span><div className="year-options">
               {ALL_GRAPH_OPTIONS.map((option) => <label key={option.value} className={allGraphItems.includes(option.value) ? "selected" : ""}>
@@ -253,21 +255,21 @@ export default function KishoDashboard() {
             </div></div>
           </> : <div className="charts single"><article>
             {comparisonEnabled && comparisonYears.length > 0
-              ? <WeatherYearComparisonChart currentRows={selected} currentYear={primaryPeriodYear} comparisonSeries={comparisonSeries} metric={metric} kind={temperatureKind} baseTemperature={baseTemperature} />
-              : <AxisChart rows={selected} metric={metric} baseTemperature={baseTemperature} temperatureKind={temperatureKind} label={`${periodLabel}の${metricLabel}`} />}
+              ? <WeatherYearComparisonChart currentRows={selected} currentYear={primaryPeriodYear} comparisonSeries={comparisonSeries} metric={metric} kind={temperatureKind} baseTemperature={baseTemperature} rainfallStation={rainfallStation} />
+              : <AxisChart rows={selected} metric={metric} baseTemperature={baseTemperature} temperatureKind={temperatureKind} rainfallStation={rainfallStation} label={`${periodLabel}の${metricLabel}`} />}
           </article></div>}
         </section>
 
         <section className="panel">
           <div className="section-title"><div><p className="eyebrow">OBSERVATIONS</p><h2>観測データ</h2></div><span>{selected.length.toLocaleString("ja-JP")}日分</span></div>
           <div className="table-wrap"><table><thead><tr><th>日付</th>
-            {metric === "all" && <><th>{allRainfallStation === "yuasa" ? "湯浅" : "川辺"} 降水量</th><th>川辺 最高</th><th>川辺 平均</th><th>川辺 最低</th><th>積算温度</th></>}
-            {metric === "rainfall" && <><th>湯浅 降水量</th><th>川辺 降水量</th></>}
+            {(metric === "all" || metric === "rainfall") && <th>{rainfallStationLabel} 降水量</th>}
+            {metric === "all" && <><th>川辺 最高</th><th>川辺 平均</th><th>川辺 最低</th><th>積算温度</th></>}
             {metric === "temperature" && <th>川辺 {temperatureLabel(temperatureKind)}</th>}
             {metric === "accumulated" && <><th>川辺 平均</th><th>積算温度</th></>}
           </tr></thead><tbody>{selected.map((row, index) => ({ row, accumulated: accumulatedSeries[index] })).reverse().map(({ row, accumulated }) => <tr key={row.date}><th>{row.date.replaceAll("-", "/")}</th>
-            {metric === "all" && <><td>{show(rainfallValue(row, allRainfallStation))} mm</td><td>{show(row.maxTemp)} ℃</td><td>{show(row.meanTemp)} ℃</td><td>{show(row.minTemp)} ℃</td><td>{show(accumulated)} ℃・日</td></>}
-            {metric === "rainfall" && <><td>{show(row.yuasaRain)} mm</td><td>{show(row.kawabeRain)} mm</td></>}
+            {metric === "all" && <><td>{show(rainfallValue(row, rainfallStation))} mm</td><td>{show(row.maxTemp)} ℃</td><td>{show(row.meanTemp)} ℃</td><td>{show(row.minTemp)} ℃</td><td>{show(accumulated)} ℃・日</td></>}
+            {metric === "rainfall" && <td>{show(rainfallValue(row, rainfallStation))} mm</td>}
             {metric === "temperature" && <td>{show(temperatureValue(row, temperatureKind))} ℃</td>}
             {metric === "accumulated" && <><td>{show(row.meanTemp)} ℃</td><td>{show(accumulated)} ℃・日</td></>}
           </tr>)}</tbody></table></div>
