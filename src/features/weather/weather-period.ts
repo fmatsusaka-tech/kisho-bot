@@ -4,6 +4,25 @@ export type WeatherMetric = "all" | "rainfall" | "temperature" | "accumulated";
 export type WeatherView = "30days" | "custom" | "year";
 export type BaseTemperature = 3 | 5 | 8;
 
+const shiftDateToYear = (date: string, targetYear: number) => {
+  const [, month, day] = date.split("-").map(Number);
+  const lastDay = new Date(Date.UTC(targetYear, month, 0)).getUTCDate();
+  return `${targetYear}-${String(month).padStart(2, "0")}-${String(Math.min(day, lastDay)).padStart(2, "0")}`;
+};
+
+export const comparisonPeriod = (
+  rows: readonly WeatherRecord[], startDate: string, endDate: string, targetStartYear: string,
+): WeatherRecord[] => {
+  if (!startDate || !endDate || startDate > endDate) return [];
+  const sourceStartYear = Number(startDate.slice(0, 4));
+  const targetYear = Number(targetStartYear);
+  if (!Number.isInteger(sourceStartYear) || !Number.isInteger(targetYear)) return [];
+  const offset = targetYear - sourceStartYear;
+  const shiftedStart = shiftDateToYear(startDate, targetYear);
+  const shiftedEnd = shiftDateToYear(endDate, Number(endDate.slice(0, 4)) + offset);
+  return rows.filter((row) => row.date >= shiftedStart && row.date <= shiftedEnd);
+};
+
 export const filterWeatherPeriod = (
   rows: readonly WeatherRecord[],
   view: WeatherView,
