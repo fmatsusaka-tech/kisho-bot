@@ -22,3 +22,9 @@
 - Issueの範囲だけを実装する
 - `main`へ直接コミットしない
 - 変更後は`npm run typecheck`、`npm run lint`、`npm test`、`npm run build`を実行する
+
+## AI引継ぎルール
+
+利用者はコードを読まない。作業開始時に `README.md`、`SYSTEM_MAP.md`、`GUARANTEES.md`、`OPERATIONS.md` と対象コードを確認し、仕様・実装・保証の不一致を実装前に報告する。
+
+作業完了時は、テスト・ビルド・可能な実動確認を行い、変更で古くなった上記文書を同じPRで更新する。重要な制約と未確認事項を文書に残し、文書と実装が一致するまで完了と報告しない。
