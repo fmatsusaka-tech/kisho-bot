@@ -2,14 +2,15 @@
 
 import { useLayoutEffect, useRef, useState, type ReactNode } from "react";
 
-const MIN_ZOOM = 1;
+const MIN_ZOOM = 0.5;
+const INITIAL_ZOOM = 1;
 const MAX_ZOOM = 5;
 const ZOOM_STEP = 0.5;
 
 export default function ChartViewport({ children, legend }: { children: ReactNode; legend?: ReactNode }) {
-  const [zoom, setZoom] = useState(MIN_ZOOM);
+  const [zoom, setZoom] = useState(INITIAL_ZOOM);
   const [popupBlocked, setPopupBlocked] = useState(false);
-  const [axisOverlay, setAxisOverlay] = useState({ width: 0, height: 0, clipWidth: 70 });
+  const [axisOverlay, setAxisOverlay] = useState({ width: 0, height: 0, clipWidth: 58 });
   const viewerRef = useRef<HTMLDivElement>(null);
   const scaleRef = useRef<HTMLDivElement>(null);
 
@@ -21,7 +22,7 @@ export default function ChartViewport({ children, legend }: { children: ReactNod
       setAxisOverlay({
         width: scale.offsetWidth,
         height: chart?.getBoundingClientRect().height ?? 0,
-        clipWidth: chart?.classList.contains("all-weather-axis") ? 190 : 70,
+        clipWidth: Number(chart?.getAttribute("data-axis-width")) || 58,
       });
     };
     update();
@@ -41,6 +42,7 @@ export default function ChartViewport({ children, legend }: { children: ReactNod
       setPopupBlocked(true);
       return;
     }
+    const popupAxisWidth = Number(chart.getAttribute("data-axis-width")) || 58;
     setPopupBlocked(false);
     popup.document.open();
     popup.document.write(`<!doctype html>
@@ -54,15 +56,17 @@ header{display:flex;justify-content:space-between;align-items:center;gap:12px;ma
 h1{margin:0;font-size:1rem}button{min-height:42px;border:0;border-radius:10px;padding:0 15px;background:var(--navy);color:#fff;font:inherit;font-weight:800}
 .chart-legend{display:flex;flex-wrap:wrap;gap:14px;margin-bottom:10px;font-size:.8rem;font-weight:800}
 .chart-legend span{display:inline-flex;align-items:center;gap:7px}.chart-legend i{width:26px;border-top-width:3px}
-.scroll{overflow:auto;touch-action:pan-x pan-y;-webkit-overflow-scrolling:touch}
-svg{display:block;width:100%;min-width:720px;height:auto}.all-weather-axis{min-width:860px}
+.scroll{position:relative;overflow:auto;touch-action:pan-x pan-y;-webkit-overflow-scrolling:touch}
+.chart-frame{width:max(calc(100vw - 32px),720px)}.chart-frame.all{width:max(calc(100vw - 32px),860px)}
+.axis-sticky{position:sticky;left:0;z-index:3;float:left;overflow:hidden;margin-right:-${popupAxisWidth}px;background:#fff;box-shadow:8px 0 12px -12px #12304a}
+svg{display:block;width:100%;height:auto}
 .grid-line{stroke:#c6eaf2;stroke-width:1}.grid-line.vertical{stroke-dasharray:3 5}
 .axis-line{stroke:var(--navy);stroke-width:1.25}.tick-label,.axis-unit{fill:#36566d;font-family:inherit;font-size:11px;font-weight:700}
 .axis-unit{font-size:12px;font-weight:900}p{font-size:.75rem;font-weight:700}
 </style></head><body>
 <header><h1>気象データBot・グラフ</h1><button onclick="window.close()">閉じる</button></header>
-${legendMarkup}<div class="scroll">${chart.outerHTML}</div>
-<p>ピンチ操作で拡大・縮小できます。グラフは左右に動かせます。</p>
+${legendMarkup}<div class="scroll"><div class="axis-sticky" style="width:${popupAxisWidth}px"><div class="chart-frame${chart.classList.contains("all-weather-axis") ? " all" : ""}">${chart.outerHTML}</div></div><div class="chart-frame${chart.classList.contains("all-weather-axis") ? " all" : ""}">${chart.outerHTML}</div></div>
+<p>ピンチ操作で拡大・縮小できます。横に動かしても縦目盛は左端に固定されます。</p>
 </body></html>`);
     popup.document.close();
     popup.opener = null;
@@ -83,6 +87,6 @@ ${legendMarkup}<div class="scroll">${chart.outerHTML}</div>
       </div>}
       <div className="chart-scale" ref={scaleRef} style={{ width: `${zoom * 100}%` }}>{children}</div>
     </div>
-    <p className="chart-help">最大5倍まで拡大できます。横に動かしても縦目盛は左端に固定されます。</p>
+    <p className="chart-help">0.5倍まで縮小、最大5倍まで拡大できます。横に動かしても縦目盛は左端に固定されます。</p>
   </div>;
 }

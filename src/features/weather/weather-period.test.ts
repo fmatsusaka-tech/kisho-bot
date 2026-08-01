@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   buildAccumulatedTemperatureSeries,
+  comparisonPeriod,
   filterWeatherPeriod,
   summarizeWeather,
 } from "./weather-period";
@@ -16,6 +17,20 @@ const row = (
   date, meanTemp, maxTemp, minTemp, yuasaRain,
   meanTemp15: null, meanTemp30: null, yuasaRain15: null,
   yuasaRain30: null, kawabeRain: null,
+});
+
+describe("comparisonPeriod", () => {
+  const comparisonRows = [
+    row("2023-12-30", 1, 2, 0, 0), row("2023-12-31", 1, 2, 0, 0),
+    row("2024-01-01", 1, 2, 0, 0), row("2024-01-02", 1, 2, 0, 0),
+  ];
+
+  it("指定期間と同じ月日範囲を比較年へ移す", () => {
+    expect(comparisonPeriod(comparisonRows, "2025-12-30", "2026-01-02", "2023")
+      .map((item) => item.date)).toEqual([
+      "2023-12-30", "2023-12-31", "2024-01-01", "2024-01-02",
+    ]);
+  });
 });
 
 const rows = [

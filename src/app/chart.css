@@ -10,6 +10,7 @@
   height: auto;
   overflow: visible;
 }
+.chart-scale .axis-chart { min-width: 100%; }
 .all-weather-axis { min-width: 860px; }
 .all-chart-legend { max-height: 112px; overflow-y: auto; padding-block: 2px; }
 .grid-line {
@@ -146,7 +147,7 @@
 @media (max-width: 700px) {
   .charts article { overflow: visible; }
   .axis-chart { min-width: 100%; }
-  .chart-scale { min-width: 560px; }
+  .chart-scale { min-width: 0; }
   .chart-toolbar > span { display: none; }
   .chart-toolbar { justify-content: flex-end; }
   .chart-toolbar .expand-button { min-width: 108px; }

@@ -6,7 +6,7 @@ import {
   WEATHER_SPREADSHEET_URL, type WeatherRecord,
 } from "@/features/weather/weather-data";
 import {
-  buildAccumulatedTemperatureSeries, filterWeatherPeriod, summarizeWeather,
+  buildAccumulatedTemperatureSeries, comparisonPeriod, filterWeatherPeriod, summarizeWeather,
   type BaseTemperature, type WeatherMetric, type WeatherView,
 } from "@/features/weather/weather-period";
 import AllWeatherChart, {
@@ -42,7 +42,7 @@ function AxisChart({ rows, metric, baseTemperature, temperatureKind, label }: {
   const valid = values.filter((value): value is number => value !== null);
   if (valid.length < 2) return <p className="empty">表示できるデータがありません。</p>;
 
-  const width = 720, height = 290, left = 64, right = 18, top = 24, bottom = 48;
+  const width = 720, height = 290, left = 52, right = 18, top = 24, bottom = 48;
   const plotWidth = width - left - right, plotHeight = height - top - bottom;
   const dataMin = metric === "temperature" ? Math.min(...valid) : 0;
   const dataMax = Math.max(...valid);
@@ -66,7 +66,7 @@ function AxisChart({ rows, metric, baseTemperature, temperatureKind, label }: {
       ? "var(--chart-red)"
       : "var(--chart-green)";
 
-  return <ChartViewport><svg className="axis-chart" viewBox={`0 0 ${width} ${height}`} role="img" aria-label={label}>
+  return <ChartViewport><svg className="axis-chart" data-axis-width="58" viewBox={`0 0 ${width} ${height}`} role="img" aria-label={label}>
     <text x={left} y="13" className="axis-unit">{unit}</text>
     {yTicks.map((tick) => <g key={tick}>
       <line x1={left} y1={y(tick)} x2={width - right} y2={y(tick)} className="grid-line" />
@@ -118,8 +118,9 @@ export default function KishoDashboard() {
   useEffect(() => { void load(); }, []);
   const latest = rows.at(-1);
   const currentYear = latest?.date.slice(0, 4) ?? "";
+  const primaryPeriodYear = view === "custom" ? startDate.slice(0, 4) : currentYear;
   const availableComparisonYears = [...new Set(rows.map((row) => row.date.slice(0, 4)))]
-    .filter((year) => year !== currentYear)
+    .filter((year) => year !== primaryPeriodYear)
     .sort((left, right) => right.localeCompare(left));
   const toggleComparisonYear = (year: string) => {
     setComparisonYears((selectedYears) =>
@@ -140,6 +141,16 @@ export default function KishoDashboard() {
   const selected = useMemo(
     () => filterWeatherPeriod(rows, view, startDate, endDate),
     [rows, view, startDate, endDate],
+  );
+  const comparisonEnabled = view === "year" || view === "custom";
+  const primaryStartDate = selected[0]?.date ?? startDate;
+  const primaryEndDate = selected.at(-1)?.date ?? endDate;
+  const comparisonSeries = useMemo(
+    () => comparisonYears.map((year) => ({
+      year,
+      rows: comparisonPeriod(rows, primaryStartDate, primaryEndDate, year),
+    })),
+    [comparisonYears, primaryEndDate, primaryStartDate, rows],
   );
   const summary = useMemo(
     () => summarizeWeather(selected, baseTemperature),
@@ -202,7 +213,7 @@ export default function KishoDashboard() {
           <button className={temperatureKind === "mean" ? "active" : ""} onClick={() => setTemperatureKind("mean")}>平均気温</button>
           <button className={temperatureKind === "minimum" ? "active" : ""} onClick={() => setTemperatureKind("minimum")}>最低気温</button>
         </div></div>}
-        {view === "year" && (metric === "all" || metric === "temperature" || metric === "rainfall") && <div className="control-group"><span>比較年（2つまで）</span><div className="year-options">
+        {comparisonEnabled && <div className="control-group"><span>比較年（同じ月日・2つまで）</span><div className="year-options">
           {availableComparisonYears.map((year) => <label key={year} className={comparisonYears.includes(year) ? "selected" : ""}>
             <input type="checkbox" checked={comparisonYears.includes(year)} disabled={!comparisonYears.includes(year) && comparisonYears.length >= 2} onChange={() => toggleComparisonYear(year)} />
             {year}年
@@ -228,7 +239,7 @@ export default function KishoDashboard() {
           <div className="section-title"><div><p className="eyebrow">WEATHER TREND</p><h2>{periodLabel}の{metricLabel}</h2></div><span>{summary.days.toLocaleString("ja-JP")}日分</span></div>
           {metric === "all" ? <>
             <div className="charts single"><article>
-              <AllWeatherChart allRows={rows} currentRows={selected} currentYear={currentYear} comparisonYears={comparisonYears} items={allGraphItems} baseTemperature={baseTemperature} compareYears={view === "year"} />
+              <AllWeatherChart currentRows={selected} currentYear={primaryPeriodYear} comparisonSeries={comparisonSeries} items={allGraphItems} baseTemperature={baseTemperature} comparePeriods={comparisonEnabled && comparisonYears.length > 0} />
             </article></div>
             <div className="control-group graph-options"><span>グラフの表示項目（複数選択可）</span><div className="year-options">
               {ALL_GRAPH_OPTIONS.map((option) => <label key={option.value} className={allGraphItems.includes(option.value) ? "selected" : ""}>
@@ -236,8 +247,8 @@ export default function KishoDashboard() {
               </label>)}
             </div></div>
           </> : <div className="charts single"><article>
-            {view === "year" && (metric === "temperature" || metric === "rainfall")
-              ? <WeatherYearComparisonChart allRows={rows} currentRows={selected} currentYear={currentYear} comparisonYears={comparisonYears} metric={metric} kind={temperatureKind} baseTemperature={baseTemperature} />
+            {comparisonEnabled && comparisonYears.length > 0
+              ? <WeatherYearComparisonChart currentRows={selected} currentYear={primaryPeriodYear} comparisonSeries={comparisonSeries} metric={metric} kind={temperatureKind} baseTemperature={baseTemperature} />
               : <AxisChart rows={selected} metric={metric} baseTemperature={baseTemperature} temperatureKind={temperatureKind} label={`${periodLabel}の${metricLabel}`} />}
           </article></div>}
         </section>
