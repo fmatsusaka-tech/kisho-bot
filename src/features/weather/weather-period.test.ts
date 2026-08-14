@@ -3,6 +3,7 @@ import {
   buildAccumulatedTemperatureSeries,
   comparisonPeriod,
   filterWeatherPeriod,
+  shiftPeriodBeforeYear,
   summarizeWeather,
 } from "./weather-period";
 import type { WeatherRecord } from "./weather-data";
@@ -31,6 +32,23 @@ describe("comparisonPeriod", () => {
       .map((item) => item.date)).toEqual([
       "2023-12-30", "2023-12-31", "2024-01-01", "2024-01-02",
     ]);
+  });
+});
+
+describe("shiftPeriodBeforeYear", () => {
+  it("今年の期間を前年の同じ月日へ移す", () => {
+    expect(shiftPeriodBeforeYear("2026-07-15", "2026-08-13", "2026"))
+      .toEqual({ startDate: "2025-07-15", endDate: "2025-08-13" });
+  });
+
+  it("年をまたぐ期間も今年を含まない位置へ移す", () => {
+    expect(shiftPeriodBeforeYear("2025-12-30", "2026-01-02", "2026"))
+      .toEqual({ startDate: "2024-12-30", endDate: "2025-01-02" });
+  });
+
+  it("すでに過去年だけの期間なら変更しない", () => {
+    expect(shiftPeriodBeforeYear("2024-08-14", "2024-12-31", "2026"))
+      .toEqual({ startDate: "2024-08-14", endDate: "2024-12-31" });
   });
 });
 

@@ -11,6 +11,27 @@ const shiftDateToYear = (date: string, targetYear: number) => {
   return `${targetYear}-${String(month).padStart(2, "0")}-${String(Math.min(day, lastDay)).padStart(2, "0")}`;
 };
 
+export const shiftPeriodBeforeYear = (
+  startDate: string,
+  endDate: string,
+  excludedYear: string,
+): { startDate: string; endDate: string } => {
+  const excluded = Number(excludedYear);
+  const startYear = Number(startDate.slice(0, 4));
+  const endYear = Number(endDate.slice(0, 4));
+  if (!startDate || !endDate || !Number.isInteger(excluded)
+    || !Number.isInteger(startYear) || !Number.isInteger(endYear)) {
+    return { startDate, endDate };
+  }
+  const latestSelectedYear = Math.max(startYear, endYear);
+  if (latestSelectedYear < excluded) return { startDate, endDate };
+  const offset = excluded - 1 - latestSelectedYear;
+  return {
+    startDate: shiftDateToYear(startDate, startYear + offset),
+    endDate: shiftDateToYear(endDate, endYear + offset),
+  };
+};
+
 export const comparisonPeriod = (
   rows: readonly WeatherRecord[], startDate: string, endDate: string, targetStartYear: string,
 ): WeatherRecord[] => {

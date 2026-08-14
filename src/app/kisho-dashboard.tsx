@@ -7,6 +7,7 @@ import {
 } from "@/features/weather/weather-data";
 import {
   buildAccumulatedTemperatureSeries, comparisonPeriod, filterWeatherPeriod, summarizeWeather,
+  shiftPeriodBeforeYear,
   type BaseTemperature, type WeatherMetric, type WeatherView,
 } from "@/features/weather/weather-period";
 import AllWeatherChart, {
@@ -100,6 +101,7 @@ export default function KishoDashboard() {
   const [allGraphItems, setAllGraphItems] = useState<AllGraphItem[]>(ALL_GRAPH_OPTIONS.map((option) => option.value));
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
+  const [excludeCurrentYear, setExcludeCurrentYear] = useState(false);
 
   const load = async () => {
     setStatus("loading");
@@ -110,8 +112,8 @@ export default function KishoDashboard() {
       if (!data.length) throw new Error("有効な観測データがありません。");
       setRows(data);
       const latestDate = data.at(-1)?.date ?? "";
-      const initialStart = new Date(`${latestDate}T00:00:00`);
-      initialStart.setDate(initialStart.getDate() - 29);
+      const initialStart = new Date(`${latestDate}T00:00:00Z`);
+      initialStart.setUTCDate(initialStart.getUTCDate() - 29);
       setStartDate(initialStart.toISOString().slice(0, 10));
       setEndDate(latestDate);
       setStatus("ready");
@@ -126,7 +128,7 @@ export default function KishoDashboard() {
   const currentYear = latest?.date.slice(0, 4) ?? "";
   const primaryPeriodYear = view === "custom" ? startDate.slice(0, 4) : currentYear;
   const availableComparisonYears = [...new Set(rows.map((row) => row.date.slice(0, 4)))]
-    .filter((year) => year !== primaryPeriodYear)
+    .filter((year) => year !== primaryPeriodYear && (!excludeCurrentYear || year !== currentYear))
     .sort((left, right) => right.localeCompare(left));
   const { recent: recentComparisonYears, historical: historicalComparisonYears } = splitComparisonYears(availableComparisonYears);
   const selectedHistoricalYears = comparisonYears.filter((year) => Number(year) <= 2019);
@@ -146,6 +148,18 @@ export default function KishoDashboard() {
         : [...items, item],
     );
   };
+  const toggleExcludeCurrentYear = () => {
+    const nextValue = !excludeCurrentYear;
+    setExcludeCurrentYear(nextValue);
+    if (!nextValue) return;
+    const shifted = shiftPeriodBeforeYear(startDate, endDate, currentYear);
+    setStartDate(shifted.startDate);
+    setEndDate(shifted.endDate);
+    setComparisonYears((years) => years.filter((year) => year !== currentYear));
+  };
+  const customMaximumDate = excludeCurrentYear && currentYear
+    ? `${Number(currentYear) - 1}-12-31`
+    : latest?.date;
   const selected = useMemo(
     () => filterWeatherPeriod(rows, view, startDate, endDate),
     [rows, view, startDate, endDate],
@@ -211,11 +225,14 @@ export default function KishoDashboard() {
           <button className={view === "custom" ? "active" : ""} onClick={() => setView("custom")}>指定期間</button>
           <button className={view === "year" ? "active" : ""} onClick={() => setView("year")}>今年</button>
         </div></div>
-        {view === "custom" && <div className="date-fields">
-          <label>開始日<input type="date" min={rows[0]?.date} max={endDate || latest.date} value={startDate} onChange={(event) => setStartDate(event.target.value)} /></label>
+        {view === "custom" && <><label className="custom-period-option">
+          <input type="checkbox" checked={excludeCurrentYear} onChange={toggleExcludeCurrentYear} />
+          <span>今年のデータを参照しない</span>
+        </label><p className="comparison-note">有効にすると過去年の12月31日まで指定でき、比較対象から今年を除外します。</p><div className="date-fields">
+          <label>開始日<input type="date" min={rows[0]?.date} max={endDate || customMaximumDate} value={startDate} onChange={(event) => setStartDate(event.target.value)} /></label>
           <span>〜</span>
-          <label>終了日<input type="date" min={startDate || rows[0]?.date} max={latest.date} value={endDate} onChange={(event) => setEndDate(event.target.value)} /></label>
-        </div>}
+          <label>終了日<input type="date" min={startDate || rows[0]?.date} max={customMaximumDate} value={endDate} onChange={(event) => setEndDate(event.target.value)} /></label>
+        </div></>}
         <div className="control-group"><span>表示情報</span><div className="segmented compact">
           <button className={metric === "all" ? "active" : ""} onClick={() => setMetric("all")}>全部</button>
           <button className={metric === "rainfall" ? "active" : ""} onClick={() => setMetric("rainfall")}>降水量</button>

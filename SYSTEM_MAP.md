@@ -33,7 +33,7 @@ GitHub Actions → GitHub Pages
 | `src/app/chart-viewport.tsx` | ズーム、横スクロール、固定縦目盛り、別画面 |
 | `src/features/weather/weather-data.ts` | CSV解析、地点定義、降水量選択、基本検査 |
 | `src/features/weather/weather-temperature.ts` | 川辺・海老名の気温選択 |
-| `src/features/weather/weather-period.ts` | 期間抽出、年比較、集計、積算温度 |
+| `src/features/weather/weather-period.ts` | 期間抽出、今年を除外する期間移動、年比較、集計、積算温度 |
 | `scripts/fetch-jma-history.mjs` | 3地点の公開最古年以降を検証・CSV生成 |
 | `apps-script/Code.js` | 3地点の初回取得、12年単位の過去取得、毎朝更新、再取得、分析・管理・ログ・検査 |
 
