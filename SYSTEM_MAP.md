@@ -34,6 +34,7 @@ GitHub Actions → GitHub Pages
 | `src/features/weather/weather-temperature.ts` | 川辺・海老名の気温選択 |
 | `src/features/weather/weather-period.ts` | 期間抽出、年比較、集計、積算温度 |
 | `scripts/fetch-ebina-jma.mjs` | 海老名の2020年以降の初期取得CSV生成 |
+| `apps-script/Code.js` | 3地点の初回取得、毎朝更新、再取得、分析・管理・ログ・検査 |
 
 ## データ列
 
@@ -52,9 +53,9 @@ GitHub Actions → GitHub Pages
 
 | 対象 | 更新主体 | 現在の状態 |
 |---|---|---|
-| 川辺・湯浅の生データと分析列 | Spreadsheet付属Google Apps Script | 毎朝6時頃に直近3日を再取得 |
+| 川辺・湯浅・海老名の生データと分析列 | Spreadsheet付属Google Apps Script | 毎朝6時頃に直近3日を再取得 |
 | 海老名の初期データ | `scripts/fetch-ebina-jma.mjs`と初期投入作業 | 2020/01/01〜2026/08/13を投入済み |
-| 海老名の日次データ | Google Apps Scriptへ追加予定 | 未接続 |
+| 海老名の日次データ | Google Apps Script | 接続済み、手動実行成功、時間トリガー1件 |
 | 画面表示 | ブラウザ | Spreadsheetの公開CSVを読み取り、外部へは書かない |
 | Webアプリ | GitHub Actions | `main`からGitHub Pagesへ公開 |
 

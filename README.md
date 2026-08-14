@@ -24,10 +24,9 @@
 - 湯浅：降水量のみ
 - 海老名：平均・最高・最低気温、降水量（2020/01/01以降を初期投入済み）
 - Web画面、期間切替、全指標、年比較、地点切替：実装済み
-- 川辺・湯浅の毎朝更新：既存Google Apps Scriptで稼働中
-- 海老名の毎朝更新：未接続。既存Apps Scriptの安全な編集手段を確保してから追加する
+- 川辺・湯浅・海老名の毎朝更新：Google Apps Scriptで稼働中
 
-海老名の初期取得は `scripts/fetch-ebina-jma.mjs` で再現できます。気象庁の訂正を反映する継続更新は、既存Apps Scriptへ海老名（prec_no `46`、block_no `0388`）を追加するまで保証されません。
+海老名の初期取得は `scripts/fetch-ebina-jma.mjs` で再現できます。日次更新コードは `apps-script/Code.js` でGit管理し、Apps Scriptプロジェクト「気象データ読み込み」へ反映します。
 
 ## 起動・検証
 

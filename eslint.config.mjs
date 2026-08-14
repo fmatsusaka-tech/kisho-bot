@@ -17,6 +17,12 @@ const config = [
       "coverage/**",
     ],
   },
+  {
+    files: ["apps-script/Code.js"],
+    rules: {
+      "@typescript-eslint/no-unused-vars": "off",
+    },
+  },
 ];
 
 export default config;
