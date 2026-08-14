@@ -1,65 +1,61 @@
 # SYSTEM_MAP
 
-## システム境界
+## 全体構成
 
 ```text
-気象庁データ
-    │  現在、このリポジトリには取得・保存処理なし
-    ▼
+気象庁 過去の気象データ検索
+  ├─ 川辺（日平均・最高・最低気温、日降水量）
+  ├─ 湯浅（日降水量）
+  └─ 海老名（日平均・最高・最低気温、日降水量）
+          ↓ 取得・日付キーで更新
 Google Spreadsheet「和歌山気象データ」
-    │  公開CSV（読取り専用で利用）
-    ▼
-気象データBot（Next.js静的Webアプリ）
-    ├─ 期間選択・集計
-    ├─ グラフ・年比較・表
-    └─ ブラウザ画面へ出力
+  ├─ 川辺 / 湯浅 / 海老名：地点別の生データ
+  ├─ データ分析：公開画面用の横持ちデータ
+  ├─ 管理 / 取得ログ / データチェック：運用状態
+  └─ 公開CSV（データ分析、gid=186487642）
+          ↓ 読み取り専用
+Next.js静的Webアプリ
+  ├─ 期間・指標・地点・比較年を選択
+  ├─ ブラウザ内で集計
+  └─ グラフ・カード・観測表を表示
+          ↓ mainマージ
+GitHub Actions → GitHub Pages
 ```
 
-GitHub Actionsはソースから静的ファイルを生成し、GitHub Pagesへ配置します。Webアプリ自身にサーバーAPIやデータベースはありません。
+## 画面とコード
 
-## 画面
-
-| 画面・部品 | 役割 |
+| 場所 | 役割 |
 |---|---|
-| `src/app/page.tsx` | ダッシュボードを表示する入口 |
-| `src/app/kisho-dashboard.tsx` | CSV取得、期間・指標選択、集計値、表、エラー表示を統括 |
-| `src/app/weather-year-comparison-chart.tsx` | 今年または指定期間と、最大2つの比較年を表示 |
-| `src/app/all-weather-chart.tsx` | 気温・選択地点の降水量・積算温度を一枚に重ねて表示 |
-| `src/app/chart-viewport.tsx` | 0.5〜5倍ズーム、横スクロール、通常・別画面の縦軸固定 |
+| `src/app/kisho-dashboard.tsx` | CSV取得、全操作状態、カード・表・エラー表示 |
+| `src/app/all-weather-chart.tsx` | 全指標の複合グラフと年比較 |
+| `src/app/weather-year-comparison-chart.tsx` | 単一指標の年比較 |
+| `src/app/chart-viewport.tsx` | ズーム、横スクロール、固定縦目盛り、別画面 |
+| `src/features/weather/weather-data.ts` | CSV解析、地点定義、降水量選択、基本検査 |
+| `src/features/weather/weather-temperature.ts` | 川辺・海老名の気温選択 |
+| `src/features/weather/weather-period.ts` | 期間抽出、年比較、集計、積算温度 |
+| `scripts/fetch-ebina-jma.mjs` | 海老名の2020年以降の初期取得CSV生成 |
 
-## ロジックとデータ
+## データ列
 
-| ファイル | 入力 | 出力・更新対象 |
+公開CSVでは従来のA:Kに加えて、L:Oを使用します。
+
+| 列 | 内容 |
+|---|---|
+| L | 降水量（海老名） |
+| M | 平均気温（海老名） |
+| N | 最高気温（海老名） |
+| O | 最低気温（海老名） |
+
+湯浅に気温列は作りません。存在しない観測値を補完しないためです。
+
+## 更新主体
+
+| 対象 | 更新主体 | 現在の状態 |
 |---|---|---|
-| `src/features/weather/weather-data.ts` | Spreadsheetの公開CSV | ブラウザメモリ上の観測レコード。外部データは更新しない |
-| `src/features/weather/weather-period.ts` | 観測レコード、期間、基準温度 | 期間抽出、集計値、積算温度系列 |
-| `src/features/weather/weather-temperature.ts` | 観測レコード、気温種別 | 最高・平均・最低気温の選択値 |
+| 川辺・湯浅の生データと分析列 | Spreadsheet付属Google Apps Script | 毎朝6時頃に直近3日を再取得 |
+| 海老名の初期データ | `scripts/fetch-ebina-jma.mjs`と初期投入作業 | 2020/01/01〜2026/08/13を投入済み |
+| 海老名の日次データ | Google Apps Scriptへ追加予定 | 未接続 |
+| 画面表示 | ブラウザ | Spreadsheetの公開CSVを読み取り、外部へは書かない |
+| Webアプリ | GitHub Actions | `main`からGitHub Pagesへ公開 |
 
-公開CSVで必須の列名は `weather-data.ts` の `required` 配列が契約です。日付は `YYYY/M/D` 形式を読み、内部では `YYYY-MM-DD` に正規化します。CSVの行は日付順に並べ替えます。
-
-指定期間の年比較は、選択した開始日・終了日を同じ月日の比較年へ移します。年をまたぐ期間は期間全体を同じ年数だけ移動し、2月29日は比較年に存在する月末へ丸めます。
-
-降水量は初期状態で湯浅を使い、利用者が川辺へ切り替えると、最新値、期間集計、通常・比較・複合グラフ、凡例、観測表が同じ地点へ切り替わります。地点選択は画面内で共通です。
-
-## 外部サービス
-
-| サービス | 用途 | このシステムが更新するもの |
-|---|---|---|
-| Google Spreadsheet「和歌山気象データ」 | 公開画面のデータ元 | なし（現在は読取りのみ） |
-| GitHub | ソース、PR、CI、公開workflow | ソースとActions実行履歴 |
-| GitHub Pages | 静的Webアプリの公開 | Actionsが `out/` をデプロイ |
-| 気象庁 | データの原典と出典 | なし |
-| `teiki-chosa-output` | 別アプリ | 一切更新しない |
-
-## 入力から表示まで
-
-1. 利用者がGitHub Pagesの公開画面を開く。
-2. ブラウザがSpreadsheetの公開CSVを `cache: no-store` で取得する。
-3. 必須列と日付を読み取り、数値でない値や空欄を欠測（`null`）として保持する。
-4. 最新日を基準に、初期状態として直近30日を選ぶ。
-5. 選択期間と表示指標に応じてブラウザ内で集計する。
-6. カード、グラフ、観測表へ出力する。外部データへの書込みは行わない。
-
-## 未実装のデータ更新経路
-
-要求仕様には「2015年以降の整備」「毎朝6時頃に前日までの直近3日を再取得」「日付キーでSpreadsheetを更新」があります。しかし、気象庁取得・Google認証・Spreadsheet Writer・定時workflowは現行コードにありません。実装する場合は、公開画面とは別の書込み経路として設計し、秘密情報をブラウザへ含めないでください。
+`teiki-chosa-output`とそのSpreadsheetは、どの経路からも更新しません。

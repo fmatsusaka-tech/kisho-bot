@@ -1,4 +1,5 @@
-import { rainfallValue, type RainfallStation, type WeatherRecord } from "./weather-data";
+import { rainfallValue, type RainfallStation, type TemperatureStation, type WeatherRecord } from "./weather-data";
+import { temperatureValue } from "./weather-temperature";
 
 export type WeatherMetric = "all" | "rainfall" | "temperature" | "accumulated";
 export type WeatherView = "30days" | "custom" | "year";
@@ -45,11 +46,13 @@ const present = (values: readonly (number | null)[]) =>
 export const buildAccumulatedTemperatureSeries = (
   rows: readonly WeatherRecord[],
   baseTemperature: BaseTemperature = 5,
+  temperatureStation: TemperatureStation = "kawabe",
 ): number[] => {
   let accumulated = 0;
   return rows.map((row) => {
-    if (row.meanTemp !== null) {
-      accumulated += Math.max(row.meanTemp - baseTemperature, 0);
+    const meanTemperature = temperatureValue(row, "mean", temperatureStation);
+    if (meanTemperature !== null) {
+      accumulated += Math.max(meanTemperature - baseTemperature, 0);
     }
     return accumulated;
   });
@@ -59,12 +62,13 @@ export const summarizeWeather = (
   rows: readonly WeatherRecord[],
   baseTemperature: BaseTemperature = 5,
   rainfallStation: RainfallStation = "yuasa",
+  temperatureStation: TemperatureStation = "kawabe",
 ) => {
   const rain = present(rows.map((row) => rainfallValue(row, rainfallStation)));
-  const means = present(rows.map((row) => row.meanTemp));
-  const highs = present(rows.map((row) => row.maxTemp));
-  const lows = present(rows.map((row) => row.minTemp));
-  const accumulated = buildAccumulatedTemperatureSeries(rows, baseTemperature);
+  const means = present(rows.map((row) => temperatureValue(row, "mean", temperatureStation)));
+  const highs = present(rows.map((row) => temperatureValue(row, "maximum", temperatureStation)));
+  const lows = present(rows.map((row) => temperatureValue(row, "minimum", temperatureStation)));
+  const accumulated = buildAccumulatedTemperatureSeries(rows, baseTemperature, temperatureStation);
   return {
     days: rows.length,
     rainTotal: rain.length ? rain.reduce((sum, value) => sum + value, 0) : null,
