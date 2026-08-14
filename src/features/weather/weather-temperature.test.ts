@@ -13,6 +13,10 @@ const row: WeatherRecord = {
   yuasaRain15: null,
   yuasaRain30: null,
   kawabeRain: 0,
+  ebinaRain: 4,
+  ebinaMeanTemp: 30.2,
+  ebinaMaxTemp: 35.1,
+  ebinaMinTemp: 25.4,
 };
 
 describe("temperature kind", () => {
@@ -23,5 +27,11 @@ describe("temperature kind", () => {
   ] as const)("%sを選択する", (kind, expectedValue, expectedLabel) => {
     expect(temperatureValue(row, kind)).toBe(expectedValue);
     expect(temperatureLabel(kind)).toBe(expectedLabel);
+  });
+
+  it("海老名の気温を選択する", () => {
+    expect(temperatureValue(row, "maximum", "ebina")).toBe(35.1);
+    expect(temperatureValue(row, "mean", "ebina")).toBe(30.2);
+    expect(temperatureValue(row, "minimum", "ebina")).toBe(25.4);
   });
 });

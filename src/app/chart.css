@@ -75,6 +75,25 @@
   opacity: .45;
   cursor: not-allowed;
 }
+.historical-year-select {
+  min-height: 34px;
+  padding: 7px 34px 7px 12px;
+  border: 1px solid color-mix(in srgb, var(--aqua) 55%, var(--white));
+  border-radius: 999px;
+  background: var(--white);
+  color: var(--navy);
+  font: inherit;
+  font-size: .78rem;
+  font-weight: 800;
+  cursor: pointer;
+}
+.historical-year-select:disabled { opacity: .45; cursor: not-allowed; }
+.comparison-note {
+  margin: 7px 0 0;
+  color: color-mix(in srgb, var(--navy) 66%, var(--white));
+  font-size: .72rem;
+  font-weight: 700;
+}
 .chart-toolbar {
   display: flex;
   align-items: center;

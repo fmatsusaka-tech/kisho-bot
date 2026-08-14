@@ -1,4 +1,4 @@
-import { rainfallValue, type RainfallStation, type WeatherRecord } from "@/features/weather/weather-data";
+import { rainfallValue, STATION_LABELS, type RainfallStation, type TemperatureStation, type WeatherRecord } from "@/features/weather/weather-data";
 import {
   buildAccumulatedTemperatureSeries,
   type BaseTemperature,
@@ -25,6 +25,7 @@ export default function WeatherYearComparisonChart({
   kind,
   baseTemperature,
   rainfallStation,
+  temperatureStation,
   colors = ["var(--chart-red)", "var(--chart-blue)", "var(--chart-green)"],
 }: {
   currentRows: WeatherRecord[];
@@ -34,6 +35,7 @@ export default function WeatherYearComparisonChart({
   kind: TemperatureKind;
   baseTemperature: BaseTemperature;
   rainfallStation: RainfallStation;
+  temperatureStation: TemperatureStation;
   colors?: readonly [string, string, string];
 }) {
   const series: Series[] = [
@@ -46,8 +48,8 @@ export default function WeatherYearComparisonChart({
   const valueSeries = series.map((item) => ({
     ...item,
     values: metric === "accumulated"
-      ? buildAccumulatedTemperatureSeries(item.rows, baseTemperature)
-      : item.rows.map((row) => metric === "rainfall" ? rainfallValue(row, rainfallStation) : temperatureValue(row, kind)),
+      ? buildAccumulatedTemperatureSeries(item.rows, baseTemperature, temperatureStation)
+      : item.rows.map((row) => metric === "rainfall" ? rainfallValue(row, rainfallStation) : temperatureValue(row, kind, temperatureStation)),
   }));
   const valid = valueSeries.flatMap((item) =>
     item.values
@@ -60,7 +62,7 @@ export default function WeatherYearComparisonChart({
   const min = metric === "temperature" ? Math.floor(Math.min(...valid) - 1) : 0;
   const max = Math.ceil(Math.max(...valid) + 1);
   const span = Math.max(max - min, 1);
-  const label = metric === "rainfall" ? `${rainfallStation === "yuasa" ? "湯浅" : "川辺"}の降水量` : metric === "accumulated" ? "積算温度" : temperatureLabel(kind);
+  const label = metric === "rainfall" ? `${STATION_LABELS[rainfallStation]}の降水量` : metric === "accumulated" ? `${STATION_LABELS[temperatureStation]}の積算温度` : `${STATION_LABELS[temperatureStation]}の${temperatureLabel(kind)}`;
   const unit = metric === "rainfall" ? "mm" : metric === "accumulated" ? "℃・日" : "℃";
   const x = (index: number, count: number) => left + index / Math.max(count - 1, 1) * plotWidth;
   const y = (value: number) => top + (max - value) / span * plotHeight;

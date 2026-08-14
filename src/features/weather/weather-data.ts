@@ -13,14 +13,29 @@ export type WeatherRecord = {
   yuasaRain15: number | null;
   yuasaRain30: number | null;
   kawabeRain: number | null;
+  ebinaRain: number | null;
+  ebinaMeanTemp: number | null;
+  ebinaMaxTemp: number | null;
+  ebinaMinTemp: number | null;
 };
 
-export type RainfallStation = "yuasa" | "kawabe";
+export type WeatherStation = "yuasa" | "kawabe" | "ebina";
+export type RainfallStation = WeatherStation;
+export type TemperatureStation = "kawabe" | "ebina";
 
-export const rainfallValue = (row: WeatherRecord, station: RainfallStation) =>
-  station === "yuasa" ? row.yuasaRain : row.kawabeRain;
+export const STATION_LABELS: Record<WeatherStation, string> = {
+  yuasa: "湯浅",
+  kawabe: "川辺",
+  ebina: "海老名",
+};
 
-const required = ["年月日", "降水量（湯浅）", "平均気温（川辺）", "最高気温（川辺）", "最低気温（川辺）", "15日平均気温（川辺）", "30日平均気温（川辺）", "15日積算降水量（湯浅）", "30日積算降水量（湯浅）", "降水量（川辺・比較用）"];
+export const rainfallValue = (row: WeatherRecord, station: RainfallStation) => {
+  if (station === "yuasa") return row.yuasaRain;
+  if (station === "ebina") return row.ebinaRain;
+  return row.kawabeRain;
+};
+
+const required = ["年月日", "降水量（湯浅）", "平均気温（川辺）", "最高気温（川辺）", "最低気温（川辺）", "15日平均気温（川辺）", "30日平均気温（川辺）", "15日積算降水量（湯浅）", "30日積算降水量（湯浅）", "降水量（川辺・比較用）", "降水量（海老名）", "平均気温（海老名）", "最高気温（海老名）", "最低気温（海老名）"];
 
 const csvRows = (text: string) => {
   const rows: string[][] = [];
@@ -59,6 +74,8 @@ export const parseWeatherCsv = (text: string): WeatherRecord[] => {
       yuasaRain: get(1), meanTemp: get(2), maxTemp: get(3), minTemp: get(4),
       meanTemp15: get(5), meanTemp30: get(6), yuasaRain15: get(7),
       yuasaRain30: get(8), kawabeRain: get(9),
+      ebinaRain: get(10), ebinaMeanTemp: get(11), ebinaMaxTemp: get(12),
+      ebinaMinTemp: get(13),
     }];
   }).sort((a, b) => a.date.localeCompare(b.date));
 };
@@ -70,6 +87,9 @@ export const validateWeather = (rows: readonly WeatherRecord[]) => {
     dates.add(row.date);
     if (row.minTemp !== null && row.maxTemp !== null && row.minTemp > row.maxTemp) issues.push(`${row.date}: 気温逆転`);
     if (row.yuasaRain !== null && row.yuasaRain < 0) issues.push(`${row.date}: 負の降水量`);
+    if (row.kawabeRain !== null && row.kawabeRain < 0) issues.push(`${row.date}: 負の降水量`);
+    if (row.ebinaRain !== null && row.ebinaRain < 0) issues.push(`${row.date}: 負の降水量`);
+    if (row.ebinaMinTemp !== null && row.ebinaMaxTemp !== null && row.ebinaMinTemp > row.ebinaMaxTemp) issues.push(`${row.date}: 海老名の気温逆転`);
   }
   return issues;
 };

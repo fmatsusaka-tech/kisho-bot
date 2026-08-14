@@ -1,5 +1,6 @@
-import { rainfallValue, type RainfallStation, type WeatherRecord } from "@/features/weather/weather-data";
+import { rainfallValue, STATION_LABELS, type RainfallStation, type TemperatureStation, type WeatherRecord } from "@/features/weather/weather-data";
 import { buildAccumulatedTemperatureSeries, type BaseTemperature } from "@/features/weather/weather-period";
+import { temperatureValue } from "@/features/weather/weather-temperature";
 import ChartViewport from "./chart-viewport";
 
 export type AllGraphItem = "maximum" | "mean" | "minimum" | "rainfall" | "accumulated";
@@ -16,12 +17,10 @@ const COLORS: Record<AllGraphItem, readonly [string, string, string]> = {
   accumulated: ["#16a34a", "#84cc16", "#065f46"],
 };
 
-const valuesFor = (rows: WeatherRecord[], item: AllGraphItem, base: BaseTemperature, rainfallStation: RainfallStation) => {
-  if (item === "accumulated") return buildAccumulatedTemperatureSeries(rows, base);
+const valuesFor = (rows: WeatherRecord[], item: AllGraphItem, base: BaseTemperature, rainfallStation: RainfallStation, temperatureStation: TemperatureStation) => {
+  if (item === "accumulated") return buildAccumulatedTemperatureSeries(rows, base, temperatureStation);
   if (item === "rainfall") return rows.map((row) => rainfallValue(row, rainfallStation));
-  if (item === "maximum") return rows.map((row) => row.maxTemp);
-  if (item === "minimum") return rows.map((row) => row.minTemp);
-  return rows.map((row) => row.meanTemp);
+  return rows.map((row) => temperatureValue(row, item, temperatureStation));
 };
 
 const scaleRange = (values: (number | null)[], zeroBased: boolean) => {
@@ -33,7 +32,7 @@ const scaleRange = (values: (number | null)[], zeroBased: boolean) => {
 };
 
 export default function AllWeatherChart({
-  currentRows, currentYear, comparisonSeries, items, baseTemperature, rainfallStation, comparePeriods,
+  currentRows, currentYear, comparisonSeries, items, baseTemperature, rainfallStation, temperatureStation, comparePeriods,
 }: {
   currentRows: WeatherRecord[];
   currentYear: string;
@@ -41,6 +40,7 @@ export default function AllWeatherChart({
   items: AllGraphItem[];
   baseTemperature: BaseTemperature;
   rainfallStation: RainfallStation;
+  temperatureStation: TemperatureStation;
   comparePeriods: boolean;
 }) {
   if (!items.length) return <p className="empty">表示するグラフ項目を選択してください。</p>;
@@ -49,7 +49,7 @@ export default function AllWeatherChart({
     ...(comparePeriods ? comparisonSeries.map((item, index) => ({ ...item, yearIndex: index + 1 })) : []),
   ];
   const lines = items.flatMap((item) => rowsByYear.map((entry) => ({
-    ...entry, item, values: valuesFor(entry.rows, item, baseTemperature, rainfallStation), color: COLORS[item][entry.yearIndex],
+    ...entry, item, values: valuesFor(entry.rows, item, baseTemperature, rainfallStation, temperatureStation), color: COLORS[item][entry.yearIndex],
   })));
   const temperatureItems = new Set<AllGraphItem>(["maximum", "mean", "minimum"]);
   const temperatureScale = scaleRange(lines.filter((line) => temperatureItems.has(line.item)).flatMap((line) => line.values), false);
@@ -77,7 +77,7 @@ export default function AllWeatherChart({
   const accumulatedAxisX = items.includes("accumulated") ? nextAxisX() : 0;
   const legend = <div className="chart-legend all-chart-legend" aria-label="グラフの凡例">
     {lines.map((line) => <span key={`${line.item}-${line.year}`}><i style={{ borderColor: line.color, borderStyle: "solid" }} />
-      {line.item === "rainfall" ? `${rainfallStation === "yuasa" ? "湯浅" : "川辺"} 降水量` : ALL_GRAPH_OPTIONS.find((option) => option.value === line.item)?.label}{comparePeriods ? `・${line.year}年` : ""}</span>)}
+      {line.item === "rainfall" ? `${STATION_LABELS[rainfallStation]} 降水量` : `${STATION_LABELS[temperatureStation]} ${ALL_GRAPH_OPTIONS.find((option) => option.value === line.item)?.label}`}{comparePeriods ? `・${line.year}年` : ""}</span>)}
   </div>;
 
   return <ChartViewport legend={legend}><svg className="axis-chart all-weather-axis" data-axis-width={left + 6} viewBox={`0 0 ${width} ${height}`} role="img" aria-label="気温、降水量、積算温度の複合グラフ">

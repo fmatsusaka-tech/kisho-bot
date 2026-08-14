@@ -17,6 +17,7 @@ const row = (
   date, meanTemp, maxTemp, minTemp, yuasaRain,
   meanTemp15: null, meanTemp30: null, yuasaRain15: null,
   yuasaRain30: null, kawabeRain: null,
+  ebinaRain: null, ebinaMeanTemp: null, ebinaMaxTemp: null, ebinaMinTemp: null,
 });
 
 describe("comparisonPeriod", () => {
@@ -93,6 +94,22 @@ describe("accumulated temperature", () => {
       rainTotal: 9,
       rainDays: 2,
       rainMaximum: 7,
+    });
+  });
+
+  it("海老名の気温で積算温度と要約を計算する", () => {
+    const ebinaRows = rows.slice(1).map((item, index) => ({
+      ...item,
+      ebinaMeanTemp: [10, null, 14][index],
+      ebinaMaxTemp: [15, null, 20][index],
+      ebinaMinTemp: [5, null, 8][index],
+    }));
+    expect(buildAccumulatedTemperatureSeries(ebinaRows, 5, "ebina")).toEqual([5, 5, 14]);
+    expect(summarizeWeather(ebinaRows, 5, "yuasa", "ebina")).toMatchObject({
+      meanTemperature: 12,
+      maximumTemperature: 20,
+      minimumTemperature: 5,
+      accumulatedTemperature: 14,
     });
   });
 });
