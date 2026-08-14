@@ -20,6 +20,7 @@ import {
   temperatureValue,
   type TemperatureKind,
 } from "@/features/weather/weather-temperature";
+import { splitComparisonYears } from "@/features/weather/weather-comparison-years";
 
 const show = (value: number | null) => value === null ? "—" : value.toFixed(1);
 const dateLabel = (date: string) => {
@@ -126,6 +127,8 @@ export default function KishoDashboard() {
   const availableComparisonYears = [...new Set(rows.map((row) => row.date.slice(0, 4)))]
     .filter((year) => year !== primaryPeriodYear)
     .sort((left, right) => right.localeCompare(left));
+  const { recent: recentComparisonYears, historical: historicalComparisonYears } = splitComparisonYears(availableComparisonYears);
+  const selectedHistoricalYears = comparisonYears.filter((year) => Number(year) <= 2019);
   const toggleComparisonYear = (year: string) => {
     setComparisonYears((selectedYears) =>
       selectedYears.includes(year)
@@ -220,11 +223,20 @@ export default function KishoDashboard() {
           <button className={temperatureKind === "minimum" ? "active" : ""} onClick={() => setTemperatureKind("minimum")}>最低気温</button>
         </div></div>}
         {comparisonEnabled && <div className="control-group"><span>比較年（同じ月日・2つまで）</span><div className="year-options">
-          {availableComparisonYears.map((year) => <label key={year} className={comparisonYears.includes(year) ? "selected" : ""}>
+          {recentComparisonYears.map((year) => <label key={year} className={comparisonYears.includes(year) ? "selected" : ""}>
             <input type="checkbox" checked={comparisonYears.includes(year)} disabled={!comparisonYears.includes(year) && comparisonYears.length >= 2} onChange={() => toggleComparisonYear(year)} />
             {year}年
           </label>)}
-        </div></div>}
+          {selectedHistoricalYears.map((year) => <label key={year} className="selected">
+            <input type="checkbox" checked onChange={() => toggleComparisonYear(year)} />{year}年
+          </label>)}
+          {historicalComparisonYears.length > 0 && <select className="historical-year-select" aria-label="2019年以前の比較年" value="" disabled={comparisonYears.length >= 2} onChange={(event) => {
+            if (event.target.value) toggleComparisonYear(event.target.value);
+          }}>
+            <option value="">2019年以前から選ぶ</option>
+            {historicalComparisonYears.filter((year) => !comparisonYears.includes(year)).map((year) => <option key={year} value={year}>{year}年</option>)}
+          </select>}
+        </div><p className="comparison-note">2019年以前はプルダウンから年を選択できます。</p></div>}
         {(metric === "accumulated" || metric === "all") && <div className="control-group"><span>積算温度の基準温度</span><div className="segmented compact">
           {([3, 5, 8] as const).map((temperature) => <button key={temperature} className={baseTemperature === temperature ? "active" : ""} onClick={() => setBaseTemperature(temperature)}>{temperature}℃</button>)}
         </div><p className="formula-note">Σ max（日平均気温 − 基準温度, 0）</p></div>}
@@ -290,7 +302,7 @@ export default function KishoDashboard() {
         <a href={WEATHER_SPREADSHEET_URL} target="_blank" rel="noreferrer">元データを開く ↗</a></section>
     </>}
     <footer>
-      <span>観測地点：気象庁アメダス 湯浅・川辺・海老名　海老名のデータ期間：2020年以降</span>
+      <span>観測地点：気象庁アメダス 湯浅・川辺・海老名　利用可能な最古データ：1976年</span>
       <span>出典：気象庁「過去の気象データ・ダウンロード」をもとに、まつさか農園が加工・集計<br />
         <a href="https://www.data.jma.go.jp/" target="_blank" rel="noreferrer">https://www.data.jma.go.jp/ ↗</a></span>
     </footer>

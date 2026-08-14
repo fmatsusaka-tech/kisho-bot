@@ -27,6 +27,15 @@ describe("Apps Script weather stations", () => {
     );
   });
 
+  it("地点・観測項目ごとの最古日を保持する", () => {
+    expect(run("WEATHER_CONFIG.HISTORICAL_START_DATE")).toBe("1976-01-01");
+    expect(run("WEATHER_CONFIG.STATIONS.YUASA.startDate")).toBe("1976-01-01");
+    expect(run("WEATHER_CONFIG.STATIONS.EBINA.startDate")).toBe("1976-01-01");
+    expect(run("WEATHER_CONFIG.STATIONS.EBINA.temperatureStartDate")).toBe("1978-01-17");
+    expect(run("WEATHER_CONFIG.STATIONS.KAWABE.startDate")).toBe("1999-03-04");
+    expect(run("WEATHER_CONFIG.HISTORICAL_CHUNK_YEARS")).toBe(12);
+  });
+
   it("詳細日別表から降水量と平均・最高・最低気温を読む", () => {
     const cells = ["1", "18.5", "9.0", "12:00", "4.0", "12:00", "24.6", "30.7", "14:00", "22.6"];
     const html = `<table id="tablefix1"><tr class="mtx">${cells.map((cell) => `<td>${cell}</td>`).join("")}</tr></table>`;

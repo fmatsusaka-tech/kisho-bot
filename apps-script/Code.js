@@ -17,9 +17,11 @@
 
 const WEATHER_CONFIG = Object.freeze({
   TIME_ZONE: 'Asia/Tokyo',
-  INITIAL_START_DATE: '2020-01-01',
+  HISTORICAL_START_DATE: '1976-01-01',
   UPDATE_LOOKBACK_DAYS: 3,
   REQUEST_INTERVAL_MS: 150,
+  HISTORICAL_CHUNK_YEARS: 12,
+  FETCH_BATCH_MONTHS: 12,
 
   STATIONS: Object.freeze({
     KAWABE: Object.freeze({
@@ -28,6 +30,8 @@ const WEATHER_CONFIG = Object.freeze({
       blockNo: '1485',
       hasTemperature: true,
       hasRainfall: true,
+      startDate: '1999-03-04',
+      temperatureStartDate: '1999-03-04',
     }),
     YUASA: Object.freeze({
       name: '湯浅',
@@ -35,6 +39,8 @@ const WEATHER_CONFIG = Object.freeze({
       blockNo: '0978',
       hasTemperature: false,
       hasRainfall: true,
+      startDate: '1976-01-01',
+      temperatureStartDate: null,
     }),
     EBINA: Object.freeze({
       name: '海老名',
@@ -42,6 +48,8 @@ const WEATHER_CONFIG = Object.freeze({
       blockNo: '0388',
       hasTemperature: true,
       hasRainfall: true,
+      startDate: '1976-01-01',
+      temperatureStartDate: '1978-01-17',
     }),
   }),
 
@@ -117,6 +125,11 @@ function onOpen() {
     .addItem('最新データを更新', 'updateWeatherNow')
     .addItem('指定期間を再取得', 'refetchPeriodFromManagement')
     .addSeparator()
+    .addItem('川辺の過去データを追加', 'backfillKawabeHistoricalData')
+    .addItem('湯浅の過去データを追加', 'backfillYuasaHistoricalData')
+    .addItem('海老名の過去データを追加', 'backfillEbinaHistoricalData')
+    .addItem('過去データ追加を確定', 'finalizeHistoricalBackfill')
+    .addSeparator()
     .addItem('欠測・重複を確認', 'runWeatherDataChecks')
     .addItem('分析シートを再作成', 'rebuildAnalysisSheet')
     .addItem('管理シートを更新', 'refreshManagementSheet')
@@ -128,7 +141,7 @@ function onOpen() {
 
 /**
  * 初回セットアップ。
- * 2020年1月1日から前日までを取得し、生データ・分析・管理・チェックを作成する。
+ * 各地点の観測開始日から前日までを取得し、生データ・分析・管理・チェックを作成する。
  */
 function setupWeatherSystem() {
   executeWithLock_('初回セットアップ', 'setupWeatherSystem', true, function () {
@@ -136,13 +149,13 @@ function setupWeatherSystem() {
     ss.setSpreadsheetTimeZone(WEATHER_CONFIG.TIME_ZONE);
     ensureOperationalSheets_();
 
-    const startDate = parseYmd_(WEATHER_CONFIG.INITIAL_START_DATE);
+    const startDate = parseYmd_(WEATHER_CONFIG.HISTORICAL_START_DATE);
     const endDate = getYesterday_();
     validatePeriod_(startDate, endDate);
 
-    const kawabeFetched = fetchPeriodData_(WEATHER_CONFIG.STATIONS.KAWABE, startDate, endDate);
-    const yuasaFetched = fetchPeriodData_(WEATHER_CONFIG.STATIONS.YUASA, startDate, endDate);
-    const ebinaFetched = fetchPeriodData_(WEATHER_CONFIG.STATIONS.EBINA, startDate, endDate);
+    const kawabeFetched = fetchPeriodData_(WEATHER_CONFIG.STATIONS.KAWABE, parseYmd_(WEATHER_CONFIG.STATIONS.KAWABE.startDate), endDate);
+    const yuasaFetched = fetchPeriodData_(WEATHER_CONFIG.STATIONS.YUASA, parseYmd_(WEATHER_CONFIG.STATIONS.YUASA.startDate), endDate);
+    const ebinaFetched = fetchPeriodData_(WEATHER_CONFIG.STATIONS.EBINA, parseYmd_(WEATHER_CONFIG.STATIONS.EBINA.startDate), endDate);
 
     writeKawabeSheet_(kawabeFetched);
     writeYuasaSheet_(yuasaFetched);
@@ -195,6 +208,118 @@ function scheduledWeatherUpdate() {
 function updateWeatherNow() {
   executeWithLock_('手動更新', 'updateWeatherNow', true, function () {
     performIncrementalUpdate_('手動', 'updateWeatherNow', true);
+  });
+}
+
+/** 各地点で気象庁が公開している最古日まで、既存データより前を追加する。 */
+function backfillKawabeHistoricalData() {
+  backfillStationHistoricalData_('KAWABE');
+}
+
+function backfillYuasaHistoricalData() {
+  backfillStationHistoricalData_('YUASA');
+}
+
+function backfillEbinaHistoricalData() {
+  backfillStationHistoricalData_('EBINA');
+}
+
+function backfillStationHistoricalData_(stationKey) {
+  const station = WEATHER_CONFIG.STATIONS[stationKey];
+  if (!station) {
+    throw new Error(`不明な地点キーです：${stationKey}`);
+  }
+
+  executeWithLock_('過去データ追加', `backfill${stationKey}HistoricalData`, false, function () {
+    ensureOperationalSheets_();
+    const existingKawabe = readRawData_(WEATHER_CONFIG.SHEETS.KAWABE).data;
+    const existingYuasa = readRawData_(WEATHER_CONFIG.SHEETS.YUASA).data;
+    const existingEbina = readRawData_(WEATHER_CONFIG.SHEETS.EBINA).data;
+    const existingByKey = { KAWABE: existingKawabe, YUASA: existingYuasa, EBINA: existingEbina };
+    const existing = sortWeatherData_(existingByKey[stationKey]);
+    const stationStartDate = parseYmd_(station.startDate);
+    const earliestExisting = existing.length > 0 ? normalizeDateValue_(existing[0].date) : getYesterday_();
+    const endDate = addDays_(earliestExisting, -1);
+
+    if (endDate < stationStartDate) {
+      SpreadsheetApp.getActiveSpreadsheet().toast(
+        `${station.name}はすでに最古日まで登録済みです。`,
+        '和歌山気象データ',
+        8
+      );
+      return;
+    }
+
+    const chunkYear = Math.max(
+      stationStartDate.getFullYear(),
+      endDate.getFullYear() - WEATHER_CONFIG.HISTORICAL_CHUNK_YEARS + 1
+    );
+    const chunkStart = new Date(chunkYear, 0, 1, 12, 0, 0);
+    const startDate = chunkStart > stationStartDate ? chunkStart : stationStartDate;
+
+    const fetched = fetchPeriodData_(station, startDate, endDate);
+    const merged = mergeWeatherData_(existing, fetched);
+    const mergedKawabe = stationKey === 'KAWABE' ? merged : existingKawabe;
+    const mergedYuasa = stationKey === 'YUASA' ? merged : existingYuasa;
+    const mergedEbina = stationKey === 'EBINA' ? merged : existingEbina;
+    if (stationKey === 'KAWABE') writeKawabeSheet_(mergedKawabe);
+    if (stationKey === 'YUASA') writeYuasaSheet_(mergedYuasa);
+    if (stationKey === 'EBINA') writeEbinaSheet_(mergedEbina);
+
+    const result = makeOperationResult_({
+      operationType: '過去データ追加',
+      functionName: `backfill${stationKey}HistoricalData`,
+      startDate: startDate,
+      endDate: endDate,
+      kawabeFetched: stationKey === 'KAWABE' ? fetched.length : 0,
+      yuasaFetched: stationKey === 'YUASA' ? fetched.length : 0,
+      ebinaFetched: stationKey === 'EBINA' ? fetched.length : 0,
+      kawabeTotal: mergedKawabe.length,
+      yuasaTotal: mergedYuasa.length,
+      ebinaTotal: mergedEbina.length,
+      status: '成功',
+      errorMessage: '',
+      issueCount: countCurrentIssues_(),
+    });
+
+    saveLastOperation_(result, true);
+    appendLog_(result);
+    writeManagementSheet_(result);
+    SpreadsheetApp.getActiveSpreadsheet().toast(
+      `${station.name}の${formatYmd_(startDate)}～${formatYmd_(endDate)}を追加しました。`,
+      '和歌山気象データ',
+      8
+    );
+  });
+}
+
+/** 3地点の追加完了後に、公開分析・検査・管理を一度だけ再構築する。 */
+function finalizeHistoricalBackfill() {
+  executeWithLock_('過去データ確定', 'finalizeHistoricalBackfill', false, function () {
+    const kawabe = readRawData_(WEATHER_CONFIG.SHEETS.KAWABE).data;
+    const yuasa = readRawData_(WEATHER_CONFIG.SHEETS.YUASA).data;
+    const ebina = readRawData_(WEATHER_CONFIG.SHEETS.EBINA).data;
+    writeAnalysisSheet_(kawabe, yuasa, ebina);
+    const checkResult = buildDataCheckSheet_();
+    const result = makeOperationResult_({
+      operationType: '過去データ確定',
+      functionName: 'finalizeHistoricalBackfill',
+      startDate: parseYmd_(WEATHER_CONFIG.HISTORICAL_START_DATE),
+      endDate: getYesterday_(),
+      kawabeFetched: 0,
+      yuasaFetched: 0,
+      ebinaFetched: 0,
+      kawabeTotal: kawabe.length,
+      yuasaTotal: yuasa.length,
+      ebinaTotal: ebina.length,
+      status: '成功',
+      errorMessage: '',
+      issueCount: checkResult.issueCount,
+    });
+    saveLastOperation_(result, true);
+    appendLog_(result);
+    writeManagementSheet_(result);
+    SpreadsheetApp.getActiveSpreadsheet().toast('過去データの分析・検査を再構築しました。', '和歌山気象データ', 8);
   });
 }
 
@@ -397,7 +522,7 @@ function performIncrementalUpdate_(operationType, functionName, showUi) {
   const latestYuasa = getLatestDateFromData_(existingYuasa);
   const latestEbina = getLatestDateFromData_(existingEbina);
   const endDate = getYesterday_();
-  const initialStart = parseYmd_(WEATHER_CONFIG.INITIAL_START_DATE);
+  const initialStart = parseYmd_(WEATHER_CONFIG.HISTORICAL_START_DATE);
 
   let startDate;
   if (!latestKawabe || !latestYuasa || !latestEbina) {
@@ -476,41 +601,43 @@ function fetchPeriodData_(station, startDate, endDate) {
   validatePeriod_(startDate, endDate);
 
   const results = [];
+  const months = [];
   let cursor = new Date(startDate.getFullYear(), startDate.getMonth(), 1, 12, 0, 0);
   const lastMonth = new Date(endDate.getFullYear(), endDate.getMonth(), 1, 12, 0, 0);
 
   while (cursor <= lastMonth) {
+    months.push({ year: cursor.getFullYear(), month: cursor.getMonth() + 1 });
     const year = cursor.getFullYear();
     const month = cursor.getMonth() + 1;
-    const url = buildJmaDailyUrl_(station.precNo, station.blockNo, year, month);
-
-    const response = UrlFetchApp.fetch(url, {
-      method: 'get',
-      muteHttpExceptions: true,
-      followRedirects: true,
-      headers: {
-        'User-Agent': 'Mozilla/5.0 (compatible; MatsusakaFarmWeatherCollector/1.0)',
-      },
-    });
-
-    const statusCode = response.getResponseCode();
-    if (statusCode !== 200) {
-      throw new Error(
-        `${station.name} ${year}年${month}月の取得に失敗しました。HTTP ${statusCode}`
-      );
-    }
-
-    const html = response.getContentText('UTF-8');
-    const monthData = parseJmaDailyTable_(html, year, month, station);
-
-    monthData.forEach(function (record) {
-      if (record.date >= startDate && record.date <= endDate) {
-        results.push(record);
-      }
-    });
-
     cursor = new Date(year, month, 1, 12, 0, 0);
-    if (cursor <= lastMonth) {
+  }
+
+  for (let offset = 0; offset < months.length; offset += WEATHER_CONFIG.FETCH_BATCH_MONTHS) {
+    const batch = months.slice(offset, offset + WEATHER_CONFIG.FETCH_BATCH_MONTHS);
+    const requests = batch.map(function (item) {
+      return {
+        url: buildJmaDailyUrl_(station.precNo, station.blockNo, item.year, item.month),
+        method: 'get',
+        muteHttpExceptions: true,
+        followRedirects: true,
+        headers: { 'User-Agent': 'Mozilla/5.0 (compatible; MatsusakaFarmWeatherCollector/1.0)' },
+      };
+    });
+    const responses = UrlFetchApp.fetchAll(requests);
+
+    responses.forEach(function (response, index) {
+      const item = batch[index];
+      const statusCode = response.getResponseCode();
+      if (statusCode !== 200) {
+        throw new Error(`${station.name} ${item.year}年${item.month}月の取得に失敗しました。HTTP ${statusCode}`);
+      }
+      const monthData = parseJmaDailyTable_(response.getContentText('UTF-8'), item.year, item.month, station);
+      monthData.forEach(function (record) {
+        if (record.date >= startDate && record.date <= endDate) results.push(record);
+      });
+    });
+
+    if (offset + WEATHER_CONFIG.FETCH_BATCH_MONTHS < months.length) {
       Utilities.sleep(WEATHER_CONFIG.REQUEST_INTERVAL_MS);
     }
   }
@@ -894,7 +1021,9 @@ function buildDataCheckSheet_() {
   const kawabeMap = weatherDataToMap_(kawabeRead.data);
   const yuasaMap = weatherDataToMap_(yuasaRead.data);
   const ebinaMap = weatherDataToMap_(ebinaRead.data);
-  const expectedStart = parseYmd_(WEATHER_CONFIG.INITIAL_START_DATE);
+  const expectedStart = parseYmd_(WEATHER_CONFIG.HISTORICAL_START_DATE);
+  const kawabeExpectedStart = parseYmd_(WEATHER_CONFIG.STATIONS.KAWABE.startDate);
+  const ebinaTemperatureStart = parseYmd_(WEATHER_CONFIG.STATIONS.EBINA.temperatureStartDate);
   const expectedEnd = getYesterday_();
 
   enumerateDates_(expectedStart, expectedEnd).forEach(function (date) {
@@ -903,9 +1032,9 @@ function buildDataCheckSheet_() {
     const yuasa = yuasaMap[key];
     const ebina = ebinaMap[key];
 
-    if (!kawabe) {
+    if (date >= kawabeExpectedStart && !kawabe) {
       issues.push(makeIssue_(now, '警告', '日付欠落', '川辺', date, 'この日の日付行がありません。', '指定期間の再取得を実行してください。'));
-    } else {
+    } else if (date >= kawabeExpectedStart) {
       if (!isNumber_(kawabe.averageTemperature)) {
         issues.push(makeIssue_(now, '確認', '欠測値', '川辺', date, '平均気温が空白です。', '気象庁側の欠測か取得状態を確認してください。'));
       }
@@ -929,13 +1058,13 @@ function buildDataCheckSheet_() {
     if (!ebina) {
       issues.push(makeIssue_(now, '警告', '日付欠落', '海老名', date, 'この日の日付行がありません。', '指定期間の再取得を実行してください。'));
     } else {
-      if (!isNumber_(ebina.averageTemperature)) {
+      if (date >= ebinaTemperatureStart && !isNumber_(ebina.averageTemperature)) {
         issues.push(makeIssue_(now, '確認', '欠測値', '海老名', date, '平均気温が空白です。', '気象庁側の欠測か取得状態を確認してください。'));
       }
-      if (!isNumber_(ebina.maximumTemperature)) {
+      if (date >= ebinaTemperatureStart && !isNumber_(ebina.maximumTemperature)) {
         issues.push(makeIssue_(now, '確認', '欠測値', '海老名', date, '最高気温が空白です。', '気象庁側の欠測か取得状態を確認してください。'));
       }
-      if (!isNumber_(ebina.minimumTemperature)) {
+      if (date >= ebinaTemperatureStart && !isNumber_(ebina.minimumTemperature)) {
         issues.push(makeIssue_(now, '確認', '欠測値', '海老名', date, '最低気温が空白です。', '気象庁側の欠測か取得状態を確認してください。'));
       }
       if (!isNumber_(ebina.rainfall)) {
@@ -1418,14 +1547,14 @@ function enumerateDates_(startDate, endDate) {
 function validatePeriod_(startDate, endDate) {
   const start = normalizeDateValue_(startDate);
   const end = normalizeDateValue_(endDate);
-  const initialStart = parseYmd_(WEATHER_CONFIG.INITIAL_START_DATE);
+  const initialStart = parseYmd_(WEATHER_CONFIG.HISTORICAL_START_DATE);
   const yesterday = getYesterday_();
 
   if (start > end) {
     throw new Error('開始日は終了日以前にしてください。');
   }
   if (start < initialStart) {
-    throw new Error(`開始日は${WEATHER_CONFIG.INITIAL_START_DATE}以降にしてください。`);
+    throw new Error(`開始日は${WEATHER_CONFIG.HISTORICAL_START_DATE}以降にしてください。`);
   }
   if (end > yesterday) {
     throw new Error(`終了日は前日（${formatYmd_(yesterday)}）以前にしてください。`);
