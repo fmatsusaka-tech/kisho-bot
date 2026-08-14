@@ -27,6 +27,7 @@ GitHub Actions → GitHub Pages
 | 場所 | 役割 |
 |---|---|
 | `src/app/kisho-dashboard.tsx` | CSV取得、全操作状態、カード・表・エラー表示 |
+| `src/app/app-version.ts` | 上部ダッシュボードに表示する利用者向けバージョン |
 | `src/app/all-weather-chart.tsx` | 全指標の複合グラフと年比較 |
 | `src/app/weather-year-comparison-chart.tsx` | 単一指標の年比較 |
 | `src/app/chart-viewport.tsx` | ズーム、横スクロール、固定縦目盛り、別画面 |

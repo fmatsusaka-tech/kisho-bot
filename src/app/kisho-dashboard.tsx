@@ -21,6 +21,7 @@ import {
   type TemperatureKind,
 } from "@/features/weather/weather-temperature";
 import { splitComparisonYears } from "@/features/weather/weather-comparison-years";
+import { APP_VERSION } from "./app-version";
 
 const show = (value: number | null) => value === null ? "—" : value.toFixed(1);
 const dateLabel = (date: string) => {
@@ -149,6 +150,10 @@ export default function KishoDashboard() {
     () => filterWeatherPeriod(rows, view, startDate, endDate),
     [rows, view, startDate, endDate],
   );
+  const yuasaThirtyDaySummary = useMemo(
+    () => summarizeWeather(filterWeatherPeriod(rows, "30days", "", ""), 5, "yuasa", "kawabe"),
+    [rows],
+  );
   const comparisonEnabled = view === "year" || view === "custom";
   const primaryStartDate = selected[0]?.date ?? startDate;
   const primaryEndDate = selected.at(-1)?.date ?? endDate;
@@ -196,8 +201,8 @@ export default function KishoDashboard() {
     {latest && <>
       <section className="latest">
         <div><span>最新観測日</span><strong>{latest.date.replaceAll("-", "/")}</strong></div>
-        <div><span>{temperatureStationLabel} 平均気温</span><strong>{show(temperatureValue(latest, "mean", temperatureStation))}<small>℃</small></strong></div>
-        <div><span>{rainfallStationLabel} 降水量</span><strong>{show(rainfallValue(latest, rainfallStation))}<small>mm</small></strong></div>
+        <div><span>現在のバージョン</span><strong>{APP_VERSION}</strong></div>
+        <div><span>湯浅 30日間の降水量</span><strong>{show(yuasaThirtyDaySummary.rainTotal)}<small>mm</small></strong></div>
       </section>
 
       <section className="controls panel">
