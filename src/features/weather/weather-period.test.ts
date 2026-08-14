@@ -83,4 +83,16 @@ describe("accumulated temperature", () => {
       temperatureMissingDays: 1,
     });
   });
+
+  it("選択地点の降水量を集計する", () => {
+    const rainRows = rows.slice(1).map((item, index) => ({
+      ...item,
+      kawabeRain: [2, null, 7][index],
+    }));
+    expect(summarizeWeather(rainRows, 5, "kawabe")).toMatchObject({
+      rainTotal: 9,
+      rainDays: 2,
+      rainMaximum: 7,
+    });
+  });
 });

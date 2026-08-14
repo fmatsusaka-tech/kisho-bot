@@ -1,4 +1,4 @@
-import type { WeatherRecord } from "./weather-data";
+import { rainfallValue, type RainfallStation, type WeatherRecord } from "./weather-data";
 
 export type WeatherMetric = "all" | "rainfall" | "temperature" | "accumulated";
 export type WeatherView = "30days" | "custom" | "year";
@@ -58,8 +58,9 @@ export const buildAccumulatedTemperatureSeries = (
 export const summarizeWeather = (
   rows: readonly WeatherRecord[],
   baseTemperature: BaseTemperature = 5,
+  rainfallStation: RainfallStation = "yuasa",
 ) => {
-  const rain = present(rows.map((row) => row.yuasaRain));
+  const rain = present(rows.map((row) => rainfallValue(row, rainfallStation)));
   const means = present(rows.map((row) => row.meanTemp));
   const highs = present(rows.map((row) => row.maxTemp));
   const lows = present(rows.map((row) => row.minTemp));
