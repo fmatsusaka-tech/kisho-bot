@@ -85,6 +85,8 @@ function AxisChart({ rows, metric, baseTemperature, temperatureKind, label, rain
     <line x1={left} y1={height - bottom} x2={width - right} y2={height - bottom} className="axis-line" />
     <line x1={left} y1={top} x2={left} y2={height - bottom} className="axis-line" />
     <polyline points={points} fill="none" stroke={color} strokeWidth="2" vectorEffect="non-scaling-stroke" />
+    {values.map((value, index) => value === null ? null : <circle key={rows[index].date} className="chart-point" cx={x(index)} cy={y(value)} r="7"
+      data-chart-point={`${rows[index].date.replaceAll("-", "/")}・${metric === "rainfall" ? STATION_LABELS[rainfallStation] : STATION_LABELS[temperatureStation]}・${label}：${value.toFixed(1)} ${unit}`} />)}
   </svg></ChartViewport>;
 }
 
