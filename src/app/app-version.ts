@@ -2,4 +2,4 @@
  * 利用者向けの表示バージョン。
  * 公開更新ごとに 2.01、2.02…のように明示的に更新する。
  */
-export const APP_VERSION = "2.0";
+export const APP_VERSION = "2.01";

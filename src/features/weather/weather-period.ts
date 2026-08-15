@@ -5,10 +5,34 @@ export type WeatherMetric = "all" | "rainfall" | "temperature" | "accumulated";
 export type WeatherView = "30days" | "custom" | "year";
 export type BaseTemperature = 3 | 5 | 8;
 
+export const viewForMetric = (metric: WeatherMetric, currentView: WeatherView): WeatherView =>
+  metric === "accumulated" && currentView === "30days" ? "custom" : currentView;
+
 const shiftDateToYear = (date: string, targetYear: number) => {
   const [, month, day] = date.split("-").map(Number);
   const lastDay = new Date(Date.UTC(targetYear, month, 0)).getUTCDate();
   return `${targetYear}-${String(month).padStart(2, "0")}-${String(Math.min(day, lastDay)).padStart(2, "0")}`;
+};
+
+export const shiftPeriodBeforeYear = (
+  startDate: string,
+  endDate: string,
+  excludedYear: string,
+): { startDate: string; endDate: string } => {
+  const excluded = Number(excludedYear);
+  const startYear = Number(startDate.slice(0, 4));
+  const endYear = Number(endDate.slice(0, 4));
+  if (!startDate || !endDate || !Number.isInteger(excluded)
+    || !Number.isInteger(startYear) || !Number.isInteger(endYear)) {
+    return { startDate, endDate };
+  }
+  const latestSelectedYear = Math.max(startYear, endYear);
+  if (latestSelectedYear < excluded) return { startDate, endDate };
+  const offset = excluded - 1 - latestSelectedYear;
+  return {
+    startDate: shiftDateToYear(startDate, startYear + offset),
+    endDate: shiftDateToYear(endDate, endYear + offset),
+  };
 };
 
 export const comparisonPeriod = (
