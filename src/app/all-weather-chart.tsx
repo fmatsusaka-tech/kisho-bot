@@ -96,5 +96,14 @@ export default function AllWeatherChart({
     {lines.map((line) => <polyline key={`${line.item}-${line.year}`} points={line.rows.flatMap((_row, index) => {
       const value = line.values[index]; return value === null ? [] : [`${x(index, line.rows.length)},${yFor(line.item, value)}`];
     }).join(" ")} fill="none" stroke={line.color} strokeWidth="2" vectorEffect="non-scaling-stroke" />)}
+    {lines.flatMap((line) => line.rows.map((row, index) => {
+      const value = line.values[index];
+      if (value === null) return null;
+      const itemLabel = ALL_GRAPH_OPTIONS.find((option) => option.value === line.item)?.label ?? line.item;
+      const station = line.item === "rainfall" ? STATION_LABELS[rainfallStation] : STATION_LABELS[temperatureStation];
+      const unit = line.item === "rainfall" ? "mm" : line.item === "accumulated" ? "℃・日" : "℃";
+      return <circle key={`point-${line.item}-${line.year}-${row.date}`} className="chart-point" cx={x(index, line.rows.length)} cy={yFor(line.item, value)} r="7"
+        data-chart-point={`${row.date.replaceAll("-", "/")}・${station}・${itemLabel}：${value.toFixed(1)} ${unit}`} />;
+    }))}
   </svg></ChartViewport>;
 }

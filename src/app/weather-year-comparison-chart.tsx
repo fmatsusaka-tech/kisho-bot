@@ -94,6 +94,11 @@ export default function WeatherYearComparisonChart({
         }).join(" ");
         return <polyline key={item.year} points={points} fill="none" stroke={item.stroke} strokeWidth="2" vectorEffect="non-scaling-stroke" />;
       })}
+      {valueSeries.flatMap((item) => item.rows.map((row, index) => {
+        const value = item.values[index];
+        return value === null ? null : <circle key={`${item.year}-${row.date}`} className="chart-point" cx={x(index, item.rows.length)} cy={y(value)} r="7"
+          data-chart-point={`${row.date.replaceAll("-", "/")}・${label}：${value.toFixed(1)} ${unit}`} />;
+      }))}
     </svg>
   </ChartViewport>;
 }

@@ -56,7 +56,7 @@ Apps ScriptプロジェクトIDは運用URLから確認し、ローカル固有�
 
 ### 表示バージョンの更新
 
-利用者向けバージョンは `src/app/app-version.ts` の `APP_VERSION` で管理します。現在は `2.01` です。次の公開更新は `2.02` のように公開単位で明示的に更新し、`package.json` と `package-lock.json` のバージョンも対応するセマンティックバージョンへ合わせます。
+利用者向けバージョンは `src/app/app-version.ts` の `APP_VERSION` で管理します。現在は `2.02` です。次の公開更新は `2.03` のように公開単位で明示的に更新し、`package.json` と `package-lock.json` のバージョンも対応するセマンティックバージョンへ合わせます。
 
 1. 作業ブランチで変更し、必須検証を通す。
 2. PRを作成し、`CI / verify`成功を確認する。
