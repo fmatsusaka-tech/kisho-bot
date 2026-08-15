@@ -64,6 +64,8 @@ Apps ScriptプロジェクトIDは運用URLから確認し、ローカル固有�
 4. `Deploy Next.js site to Pages`のbuild/deploy成功を確認する。
 5. <https://fmatsusaka-tech.github.io/kisho-bot/> を開き、海老名の降水量・気温・積算温度・年比較を確認する。
 
+積算温度の公開確認では、30日画面から積算温度を選ぶと自動的に指定期間へ移り、期間入力が表示されることも確認します。
+
 ## 障害時の確認場所
 
 | 症状 | 確認場所 |

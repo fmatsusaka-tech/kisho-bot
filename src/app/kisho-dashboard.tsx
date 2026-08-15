@@ -8,6 +8,7 @@ import {
 import {
   buildAccumulatedTemperatureSeries, comparisonPeriod, filterWeatherPeriod, summarizeWeather,
   shiftPeriodBeforeYear,
+  viewForMetric,
   type BaseTemperature, type WeatherMetric, type WeatherView,
 } from "@/features/weather/weather-period";
 import AllWeatherChart, {
@@ -148,6 +149,10 @@ export default function KishoDashboard() {
         : [...items, item],
     );
   };
+  const selectMetric = (nextMetric: WeatherMetric) => {
+    setMetric(nextMetric);
+    setView((currentView) => viewForMetric(nextMetric, currentView));
+  };
   const toggleExcludeCurrentYear = () => {
     const nextValue = !excludeCurrentYear;
     setExcludeCurrentYear(nextValue);
@@ -221,10 +226,10 @@ export default function KishoDashboard() {
 
       <section className="controls panel">
         <div className="control-group"><span>期間</span><div className="segmented">
-          <button className={view === "30days" ? "active" : ""} onClick={() => setView("30days")}>30日</button>
+          {metric !== "accumulated" && <button className={view === "30days" ? "active" : ""} onClick={() => setView("30days")}>30日</button>}
           <button className={view === "custom" ? "active" : ""} onClick={() => setView("custom")}>指定期間</button>
           <button className={view === "year" ? "active" : ""} onClick={() => setView("year")}>今年</button>
-        </div></div>
+        </div>{metric === "accumulated" && <p className="comparison-note">積算温度は開始日と終了日を指定するか、今年の年初から集計します。</p>}</div>
         {view === "custom" && <><label className="custom-period-option">
           <input type="checkbox" checked={excludeCurrentYear} onChange={toggleExcludeCurrentYear} />
           <span>今年のデータを参照しない</span>
@@ -234,10 +239,10 @@ export default function KishoDashboard() {
           <label>終了日<input type="date" min={startDate || rows[0]?.date} max={customMaximumDate} value={endDate} onChange={(event) => setEndDate(event.target.value)} /></label>
         </div></>}
         <div className="control-group"><span>表示情報</span><div className="segmented compact">
-          <button className={metric === "all" ? "active" : ""} onClick={() => setMetric("all")}>全部</button>
-          <button className={metric === "rainfall" ? "active" : ""} onClick={() => setMetric("rainfall")}>降水量</button>
-          <button className={metric === "temperature" ? "active" : ""} onClick={() => setMetric("temperature")}>気温</button>
-          <button className={metric === "accumulated" ? "active" : ""} onClick={() => setMetric("accumulated")}>積算温度</button>
+          <button className={metric === "all" ? "active" : ""} onClick={() => selectMetric("all")}>全部</button>
+          <button className={metric === "rainfall" ? "active" : ""} onClick={() => selectMetric("rainfall")}>降水量</button>
+          <button className={metric === "temperature" ? "active" : ""} onClick={() => selectMetric("temperature")}>気温</button>
+          <button className={metric === "accumulated" ? "active" : ""} onClick={() => selectMetric("accumulated")}>積算温度</button>
         </div></div>
         {metric === "temperature" && <div className="control-group"><span>気温の種類</span><div className="segmented compact">
           <button className={temperatureKind === "maximum" ? "active" : ""} onClick={() => setTemperatureKind("maximum")}>最高気温</button>

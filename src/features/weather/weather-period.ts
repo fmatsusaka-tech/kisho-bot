@@ -5,6 +5,9 @@ export type WeatherMetric = "all" | "rainfall" | "temperature" | "accumulated";
 export type WeatherView = "30days" | "custom" | "year";
 export type BaseTemperature = 3 | 5 | 8;
 
+export const viewForMetric = (metric: WeatherMetric, currentView: WeatherView): WeatherView =>
+  metric === "accumulated" && currentView === "30days" ? "custom" : currentView;
+
 const shiftDateToYear = (date: string, targetYear: number) => {
   const [, month, day] = date.split("-").map(Number);
   const lastDay = new Date(Date.UTC(targetYear, month, 0)).getUTCDate();

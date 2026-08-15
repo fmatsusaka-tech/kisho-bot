@@ -5,6 +5,7 @@ import {
   filterWeatherPeriod,
   shiftPeriodBeforeYear,
   summarizeWeather,
+  viewForMetric,
 } from "./weather-period";
 import type { WeatherRecord } from "./weather-data";
 
@@ -82,6 +83,18 @@ describe("filterWeatherPeriod", () => {
   it("開始日が終了日より後なら空にする", () => {
     expect(filterWeatherPeriod(rows, "custom", "2026-01-03", "2026-01-01"))
       .toEqual([]);
+  });
+});
+
+describe("viewForMetric", () => {
+  it("30日画面で積算温度を選ぶと指定期間へ切り替える", () => {
+    expect(viewForMetric("accumulated", "30days")).toBe("custom");
+  });
+
+  it("積算温度の今年表示と他指標の30日表示は維持する", () => {
+    expect(viewForMetric("accumulated", "year")).toBe("year");
+    expect(viewForMetric("rainfall", "30days")).toBe("30days");
+    expect(viewForMetric("all", "30days")).toBe("30days");
   });
 });
 
