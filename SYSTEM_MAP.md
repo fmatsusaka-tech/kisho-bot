@@ -30,7 +30,7 @@ GitHub Actions → GitHub Pages
 | `src/app/app-version.ts` | 上部ダッシュボードに表示する利用者向けバージョン |
 | `src/app/all-weather-chart.tsx` | 全指標の複合グラフと年比較 |
 | `src/app/weather-year-comparison-chart.tsx` | 単一指標の年比較 |
-| `src/app/chart-viewport.tsx` | ズーム、横スクロール、固定縦目盛り、タップした観測値の詳細、別画面 |
+| `src/app/chart-viewport.tsx` | ズーム、横スクロール、固定縦目盛り、選択点の丸印と観測値詳細、別画面 |
 | `src/features/weather/weather-data.ts` | CSV解析、地点定義、降水量選択、基本検査 |
 | `src/features/weather/weather-temperature.ts` | 川辺・海老名の気温選択 |
 | `src/features/weather/weather-period.ts` | 期間抽出、指標に応じた期間選択、今年を除外する期間移動、年比較、集計、積算温度 |

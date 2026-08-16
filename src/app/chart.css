@@ -169,6 +169,11 @@
   cursor: pointer;
   pointer-events: all;
 }
+.chart-point.is-selected {
+  fill: #facc15;
+  stroke: var(--navy);
+  stroke-width: 3;
+}
 .point-detail {
   min-height: 42px;
   margin: 8px 0;

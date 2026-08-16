@@ -38,7 +38,11 @@ export default function ChartViewport({ children, legend }: { children: ReactNod
   const showPoint = (event: MouseEvent<HTMLDivElement>) => {
     const target = event.target as Element;
     const point = target.closest<SVGElement>("[data-chart-point]");
-    if (point?.dataset.chartPoint) setSelectedPoint(point.dataset.chartPoint);
+    if (point?.dataset.chartPoint) {
+      viewerRef.current?.querySelector(".chart-scale .chart-point.is-selected")?.classList.remove("is-selected");
+      point.classList.add("is-selected");
+      setSelectedPoint(point.dataset.chartPoint);
+    }
   };
   const openChartWindow = () => {
     const chart = viewerRef.current?.querySelector(".chart-scale svg");
@@ -70,12 +74,13 @@ svg{display:block;width:100%;height:auto}
 .axis-line{stroke:var(--navy);stroke-width:1.25}.tick-label,.axis-unit{fill:#36566d;font-family:inherit;font-size:11px;font-weight:700}
 .axis-unit{font-size:12px;font-weight:900}p{font-size:.75rem;font-weight:700}
 .chart-point{fill:transparent;stroke:transparent;stroke-width:12;cursor:pointer;pointer-events:all}
+.chart-point.is-selected{fill:#facc15;stroke:#12304a;stroke-width:3}
 .point-detail{min-height:42px;margin:8px 0;padding:10px 12px;border-radius:10px;background:#eaf8fb;color:var(--navy);font-size:.82rem;font-weight:800}
 </style></head><body>
 <header><h1>気象データBot・グラフ</h1><button onclick="window.close()">閉じる</button></header>
 ${legendMarkup}<div class="point-detail" id="point-detail" aria-live="polite">グラフの線や点を押すと、地点のデータを表示します。</div><div class="scroll"><div class="axis-sticky" style="width:${popupAxisWidth}px"><div class="chart-frame${chart.classList.contains("all-weather-axis") ? " all" : ""}">${chart.outerHTML}</div></div><div class="chart-frame${chart.classList.contains("all-weather-axis") ? " all" : ""}">${chart.outerHTML}</div></div>
 <p>グラフの線や点を押すと値を確認できます。ピンチ操作で拡大・縮小できます。横に動かしても縦目盛は左端に固定されます。</p>
-<script>document.addEventListener('click',function(event){var point=event.target.closest('[data-chart-point]');if(point){document.getElementById('point-detail').textContent=point.dataset.chartPoint;}});</script>
+<script>document.addEventListener('click',function(event){var point=event.target.closest('[data-chart-point]');if(point){document.querySelectorAll('.chart-point.is-selected').forEach(function(selected){selected.classList.remove('is-selected');});point.classList.add('is-selected');document.getElementById('point-detail').textContent=point.dataset.chartPoint;}});</script>
 </body></html>`);
     popup.document.close();
     popup.opener = null;
